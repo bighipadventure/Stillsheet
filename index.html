@@ -112,6 +112,7 @@ select { padding-right: 4px; }
 input:focus, select:focus, textarea:focus { border-color: var(--accent-text); outline: none; box-shadow: 0 0 0 1px var(--accent-text); }
 input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-allowed; }
 textarea { resize: vertical; line-height: 1.5; padding: 4px 8px; min-height: 54px; }
+textarea.autogrow { resize: none; overflow-y: hidden; }
 input[type="range"] { width: 100%; accent-color: var(--accent); }
 label.check { display: flex; gap: 8px; align-items: center; font-size: 12px; cursor: pointer; }
 label.check input { margin: 0; }
@@ -267,7 +268,7 @@ body.resizing * { user-select: none; }
 .scene-head { display: flex; align-items: center; gap: 6px; padding: 4px 6px 4px 8px; background: var(--head); border-bottom: 1px solid var(--line); border-radius: var(--radius-l) var(--radius-l) 0 0; flex-wrap: wrap; }
 .scene-no { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
 .scene-head .title { flex: 1 1 120px; min-width: 90px; font-weight: 700; }
-.scene-stat { flex: 0 1 auto; min-width: 0; font-size: 11px; color: var(--muted); white-space: nowrap; max-width: 34ch; }
+.scene-stat { flex: 1 1 220px; min-width: 0; font-size: 11px; color: var(--muted); }
 .scene-stat b { color: var(--ok); }
 .scene-body { display: grid; grid-template-columns: minmax(260px, 400px) minmax(0, 1fr); gap: 12px; padding: 10px; }
 .scene-fields { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -280,8 +281,15 @@ body.resizing * { user-select: none; }
 .scene-extra > summary > span { min-width: 0; }
 .scene-extra .grid2 { margin-top: 4px; }
 .override { color: var(--lamp); font-weight: 700; }
+.scene-media { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--thumb), 1fr)); gap: 6px; align-content: start; }
-.thumbs-empty { color: var(--muted); font-size: 12px; border: 1px dashed var(--line); border-radius: var(--radius-s); padding: 16px; text-align: center; }
+.thumbs-empty { white-space: pre-line; flex: 1; min-height: 260px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; line-height: 1.8; border: 1px dashed var(--line-strong); border-radius: var(--radius-l); padding: 24px; text-align: center; }
+.scene-pick { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; border-radius: var(--radius-l); background: var(--stage); }
+.scene-pick-frame { padding: 0; border: none; background: transparent; min-height: 0; max-width: 100%; display: flex; justify-content: center; }
+.scene-pick-frame:hover:not(:disabled) { background: transparent; }
+.scene-pick-frame img { height: min(440px, 55vh); width: auto; max-width: 100%; object-fit: contain; display: block; border-radius: var(--radius-s); }
+.scene-pick-cap { font-size: 12px; color: #d8d8d8; }
+.scene-pick-empty { color: #9a9a9a; font-size: 12px; padding: 24px 8px; text-align: center; }
 .thumb { position: relative; aspect-ratio: 1; border-radius: var(--radius-s); overflow: hidden; border: 2px solid transparent; background: var(--stage); padding: 0; cursor: pointer; min-height: 0; }
 .thumb:focus-visible { outline: 2px solid var(--accent-text); }
 .thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
@@ -364,7 +372,12 @@ dialog#viewer { width: min(1280px, 100vw - 24px); height: min(940px, 100dvh - 24
 
 /* ===== VIEWER ===== */
 .viewer-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 330px; }
-.viewer-stage { background: var(--stage); display: flex; align-items: center; justify-content: center; min-height: 0; }
+.viewer-stage { position: relative; background: var(--stage); display: flex; align-items: center; justify-content: center; min-height: 0; }
+.viewer-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 52px; height: 88px; min-height: 0; padding: 0; border: none; border-radius: var(--radius-l); background: rgba(0, 0, 0, .55); color: #fff; font-size: 28px; z-index: 1; }
+.viewer-nav.prev { left: 12px; }
+.viewer-nav.next { right: 12px; }
+.viewer-nav:hover:not(:disabled) { background: rgba(0, 0, 0, .8); border: none; color: #fff; }
+.viewer-nav:disabled { opacity: .15; }
 .viewer-stage img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .viewer-info { overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid var(--line); }
 .viewer-info .actions { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -468,9 +481,9 @@ dialog#show[open] { display: flex; flex-direction: column; }
 </dialog>
 
 <dialog class="big" id="viewer" aria-labelledby="viewer-title">
-  <div class="dlg-head"><h2 id="viewer-title"></h2><button class="quiet" id="viewer-prev" title="前の画像（←）">◀</button><button class="quiet" id="viewer-next" title="次の画像（→）">▶</button><button class="quiet" data-close>閉じる</button></div>
+  <div class="dlg-head"><h2 id="viewer-title"></h2><button class="quiet" data-close>閉じる</button></div>
   <div class="viewer-body">
-    <div class="viewer-stage"><img id="viewer-img" alt=""></div>
+    <div class="viewer-stage"><button class="viewer-nav prev" id="viewer-prev" title="前の画像（←）" aria-label="前の画像">◀</button><img id="viewer-img" alt=""><button class="viewer-nav next" id="viewer-next" title="次の画像（→）" aria-label="次の画像">▶</button></div>
     <div class="viewer-info" id="viewer-info"></div>
   </div>
 </dialog>
@@ -1018,12 +1031,6 @@ install()
     { id: "krea", label: "krea", style: "natural" },
   ],
   sizePresets: [[832, 1216], [1216, 832], [1024, 1024], [896, 1152], [1152, 896], [768, 1344], [1344, 768], [512, 768], [768, 512], [512, 512]],
-  checkTimings: [
-    ["each", "1枚ごと"],
-    ["chunk", "数枚ごと"],
-    ["scene", "シーンごと（おすすめ）"],
-    ["end", "全部できてから"],
-  ],
   runTargets: [["all", "全シーン"], ["lacking", "合格が足りないシーン"]],
   rightTabs: [["image", "画像の共通設定"], ["run", "生成とチェック"]],
   settingsPanes: [["guide", "はじめに"], ["conn", "画像生成の接続"], ["llm", "文章AI（LLM）"], ["check", "チェックの基準"], ["files", "保存とファイル"], ["state", "いまの状態"], ["help", "ツールの使い方"]],
@@ -1041,14 +1048,14 @@ install()
       model: "", vae: "", width: 832, height: 1216,
       settings: { sampler: "Euler a", scheduler: "Automatic", steps: 28, cfg: 6, seed: -1, clipSkip: 2 },
     },
-    run: { perScene: 30, targetGood: 0, check: true, threshold: 70, strictScene: true, timing: "scene", chunk: 5, keepRejected: false, target: "all" },
+    run: { perScene: 30, check: true, threshold: 70, strictScene: true, keepRejected: true, target: "all" },
     cast: [{ id: "c1", name: "", prompt: "", note: "" }],
     locations: [],
     scenes: [],
   },
   defaultScene: { title: "", text: "", cast: [], location: "", count: "", prompt: "", negative: "", perScene: null, width: null, height: null, seed: null },
-  limits: { sceneCount: [1, 40], perScene: [1, 500], targetGood: [0, 100], threshold: [0, 100], chunk: [1, 100], steps: [1, 150], cfg: [1, 30], clipSkip: [1, 12], side: [256, 4096], temperature: [0, 2], maxTokens: [256, 131072] },
-  sliders: { perScene: [1, 100], targetGood: [0, 20], threshold: [0, 100], chunk: [1, 30], steps: [1, 80], cfg: [1, 15], side: [512, 2048], temperature: [0, 1.5] },
+  limits: { sceneCount: [1, 40], perScene: [1, 500], threshold: [0, 100], steps: [1, 150], cfg: [1, 30], clipSkip: [1, 12], side: [256, 4096], temperature: [0, 2], maxTokens: [256, 131072] },
+  sliders: { perScene: [1, 100], threshold: [0, 100], steps: [1, 80], cfg: [1, 15], side: [512, 2048], temperature: [0, 1.5] },
   storyPrompt: `You are a picture-story (kamishibai) writer and an image-prompt writer.
 You receive: the user's rough idea (often Japanese), the cast (id, name, notes, look), the locations (id, name, notes, look), the number of scenes and the prompt style.
 Plan a story of EXACTLY the requested number of scenes, in order. Each scene becomes ONE still illustration, so each scene is one clear moment that can be drawn in a single picture, with at most three characters.
@@ -1139,22 +1146,13 @@ Output ONLY one JSON object, with no explanation and no markdown:
     keepCurrent: "（いまの設定のまま）",
     notInList: "（一覧にない）",
     perScene: "1シーンの枚数",
-    targetGood: "合格で次へ",
-    targetGoodNote: "合格がこの枚数そろったら、次のシーンへ進みます（0 = 指定枚数を全部作る）。",
     check: "生成した画像を文章AIでチェックする",
     checkNote: "画像を読めるモデルが必要です。オフにすると、指定枚数を順番に作るだけになります。",
     threshold: "合格の点数",
     strictScene: "シーンの内容と違う絵（人数・動作）も不合格にする",
-    timing: "タイミング",
-    chunk: "何枚ごと",
-    timingNote: {
-      each: "1枚作るたびにチェックします。文章AIと画像AIが同時に VRAM に載るPC向けです。",
-      chunk: "指定した枚数ごとにまとめてチェックします。",
-      scene: "1シーン分を作り終えてからまとめてチェックします。VRAM の入れ替えがシーンごとに1回で済みます。",
-      end: "全シーンを作り終えてから、まとめてチェックします。",
-    },
+    checkFlow: "シーンごとに指定枚数をまとめて作り終えてから、文章AIに渡してまとめてチェックします。画像AIと文章AIの入れ替えはシーンごとに1回で済みます。",
     keepRejected: "不合格の画像も手元に残す",
-    keepRejectedNote: "オフのときは縮小画像だけ残してメモリを節約します（元の画像は画像AIの出力フォルダにあります）。",
+    keepRejectedNote: "オフにすると、不合格の画像は縮小画像だけ残してメモリを節約します（元の画像は画像AIの出力フォルダにあります）。",
     freeVram: "チェックの前に画像AIのモデルを VRAM から外す",
     saveAll: "全部を保存",
     saveAllNote: "ストーリー・シーン・登場人物・場所・画像の設定・ベース画像すべて",
@@ -1216,7 +1214,10 @@ Output ONLY one JSON object, with no explanation and no markdown:
     duplicate: "複製",
     statLine: "{total}枚・合格 <b>{good}</b>・不合格 {ng}・未チェック {pending}",
     statPicked: "・採用 #{n}",
-    noImages: "まだ画像がありません。左下の「▶ 生成を始める」か、このシーンの「▶ このシーンを生成」で作ります。",
+    noImages: "まだ画像がありません。\n左下の「▶ 生成を始める」か、このシーンの「▶ このシーンを生成」で作ります。\nできた候補はここにサムネイルで並び、採用した1枚がその下に大きく出ます。",
+    pickNone: "採用できる画像がまだありません",
+    pickCap: "採用中: {no}枚目・{score}・{mode}",
+    pickOpen: "クリックで詳細を開く",
     emptyBoard: "シーンがありません。\n左の「② ストーリー」にざっくりした指示を書いて「✦ ストーリーを組み立てる」を押すか、「＋ シーンを追加」で自分で組みます。\nお気に入りの画像を「① ベース画像」に入れると、その設定でシーン1を作ります。",
     untitled: "（無題の紙芝居）",
     viewerPick: "★ このシーンの1枚にする",
@@ -1243,7 +1244,7 @@ Output ONLY one JSON object, with no explanation and no markdown:
     exportAllGood: "ZIP に合格画像もすべて入れる",
     baseKeys: { model: "Checkpoint", vae: "VAE", sampler: "サンプラー", scheduler: "スケジューラー", steps: "ステップ", cfg: "CFG", clipSkip: "Clip skip", size: "大きさ", negative: "ネガティブ", loras: "LoRA", quality: "品質タグ", seed: "シード" },
     runNote: "{scenes}シーン × 最大{per}枚（計 最大{total}枚）・{check}",
-    runNoteCheck: "チェックあり（{timing}・{threshold}点で合格）",
+    runNoteCheck: "チェックあり（シーンごと・{threshold}点で合格）",
     runNoteNoCheck: "チェックなし",
     fixOpen: "開く",
     phasesVerb: { gen: "生成中", check: "チェック中" },
@@ -1307,7 +1308,7 @@ Output ONLY one JSON object, with no explanation and no markdown:
         "なければ、合格の中でいちばん点数の高い画像（同点なら先に作ったほう）",
         "チェックをオフにしているときは、不合格にしていない最初の画像",
       ],
-      timing: "チェックのタイミング",
+      flow: "チェックの流れ",
       prompts: "文章AIに送っている指示（英語）",
       promptNames: { checkPrompt: "画像のチェック", storyPrompt: "ストーリーの組み立て", sceneRewritePrompt: "シーンのプロンプトの書き直し" },
     },
@@ -1329,9 +1330,9 @@ Output ONLY one JSON object, with no explanation and no markdown:
   help: [
     { title: "最初に接続する", items: ["「設定」→「はじめに」の手順で、画像AIに web-app-cors を入れ、文章AIで CORS をオンにします。", "右上の「文章AI」「画像AI」が緑になればつながっています。あとからAIを起動したときは「更新」を押します。"] },
     { title: "お気に入りの1枚から始める", items: ["左の「① ベース画像」に画像をドロップすると、その画像の設定を右の「画像の共通設定」に流し込みます。", "品質タグを除いた残りのプロンプトでシーン1を作るので、あとはプロンプトを変えて生成するだけです。", "「シードも引き継ぐ」をオンにして「もう一度流し込む」と、シードもベースと同じにします。"] },
-    { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・出る人・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、シーンごとに指定枚数を順番に作り、文章AIがチェックします。"] },
+    { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・出る人・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、シーンごとに指定枚数をまとめて作り、作り終えたら文章AIがまとめてチェックします（VRAM の入れ替えはシーンごとに1回）。"] },
     { title: "自分で組んだプロンプトを順番に作る", items: ["「＋ シーンを追加」でシーンを並べ、プロンプトを書きます。チェックを切れば、指定枚数を順番に作るだけの補助ツールになります。", "日本語のタイトル・ナレーションだけ書いて「✦ 文から書き直す」を押すと、そのシーンのプロンプトだけを文章AIが書きます。", "「このシーンだけの設定」で、枚数・大きさ（横長の構図だけ横向きなど）・シード（お気に入りのシードを固定）・追加のネガティブを変えられます。"] },
-    { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "サムネイルの ★ を押すとその1枚に固定し、もう一度押すと自動に戻ります。画像を開くと、問題点・プロンプト・シードを見られます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
+    { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルの ★ を押すとその1枚に固定し、もう一度押すと自動に戻ります。", "画像を開くと、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
     { title: "同じシチュを別のキャラで作る", items: ["「保存 ▾」→「シチュを保存」でシーンを保存し、キャラごとに「キャストを保存」しておきます。", "「開く」でシチュとキャストを開くと、組み合わせを入れ替えて同じシチュを何組でも作れます。"] },
     { title: "残す・共有する", items: ["作業の状態はブラウザに残りません。閉じる前に「保存 ▾」で保存してください。", "「セット」欄の「ダウンロード（ZIP）」か「Prompt Reel に投稿」で、各シーンの1枚を残します。", "「▶ 紙芝居」で、各シーンの1枚とナレーションを順番に全画面で見られます（← → キー・自動再生）。"] },
   ],
@@ -1371,7 +1372,7 @@ Output ONLY one JSON object, with no explanation and no markdown:
     eta: "残り 約{time}",
     etaMax: "残り 最大で約{time}",
     etaMeasuring: "残り時間を計測中…",
-    etaTitle: "これまでの1枚あたりの時間（生成 {gen}・チェック {check}）から見積もっています。「合格で次へ」で早く終わることがあります。",
+    etaTitle: "これまでの1枚あたりの時間（生成 {gen}・チェック {check}）から見積もっています。",
     checkOff: "チェックが続けて失敗したので、この実行ではチェックを止めて生成だけ続けます。{fix}",
     checkBad: "文章AIのチェック結果を解釈できませんでした",
     needModelComfy: "Checkpoint が未選択です。右の「画像の共通設定」→「Checkpoint」で選んでください。",
@@ -2515,7 +2516,7 @@ class Doc {
     out.base = d.base && typeof d.base === "object" ? clone(d.base) : null;
     if (Number.isFinite(Number(d.sceneCount))) out.sceneCount = clamp(Math.round(Number(d.sceneCount)), USER_SETTINGS.limits.sceneCount);
     out.common = { ...base.common, ...(d.common || {}), settings: { ...base.common.settings, ...(d.common?.settings || {}) } };
-    out.run = { ...base.run, ...(d.run || {}) };
+    out.run = Object.fromEntries(Object.entries(base.run).map(([k, v]) => [k, d.run && k in d.run ? d.run[k] : v]));
     out.cast = Array.isArray(d.cast) ? d.cast.map((c) => this.person(c)) : base.cast;
     out.locations = Array.isArray(d.locations) ? d.locations.map((l) => this.person(l, "l")) : [];
     const castIds = new Set(out.cast.map((c) => c.id));
@@ -2736,9 +2737,8 @@ class Judge {
   }
 
   static lacking(list, run) {
-    const need = Math.max(1, Number(run.targetGood) || 0);
-    if (!run.check) return list.filter((i) => this.verdict(i, run) !== false).length < 1;
-    return this.counts(list, run).good < need;
+    if (!run.check) return !list.some((i) => this.verdict(i, run) !== false);
+    return this.counts(list, run).good < 1;
   }
 }
 
@@ -2905,11 +2905,6 @@ class Runner {
     this.app.backend().interrupt();
   }
 
-  chunkSize(run, total) {
-    if (!run.check) return total;
-    return { each: 1, chunk: clamp(Number(run.chunk) || 1, USER_SETTINGS.limits.chunk), scene: total, end: total }[run.timing] || total;
-  }
-
   seedFor(base, index) {
     const n = Number(base);
     if (Number.isFinite(n) && n >= 0) return (n + index) % (USER_SETTINGS.seedMax + 1);
@@ -2942,11 +2937,8 @@ class Runner {
   }
 
   // PLAN AND REMAINING WORK
-  swapsFor(run, gens, sceneLeft) {
+  swapsFor(run, sceneLeft) {
     if (!run.check || this.checkDisabled || !this.app.store.data.llm.freeVram) return 0;
-    if (run.timing === "end") return this.endChecked ? 0 : 1;
-    if (run.timing === "each") return gens * 2;
-    if (run.timing === "chunk") return Math.ceil(gens / clamp(Number(run.chunk) || 1, USER_SETTINGS.limits.chunk)) * 2;
     return sceneLeft * 2;
   }
 
@@ -2963,7 +2955,7 @@ class Runner {
       for (const p of this.plan) pending += this.app.images.list(p.id).filter((i) => i.blob && (!i.check || i.check.state === "pending")).length;
     }
     const checks = run.check && !this.checkDisabled ? gens + pending : 0;
-    return { gens, checks, swaps: this.swapsFor(run, gens, scenesLeft) };
+    return { gens, checks, swaps: this.swapsFor(run, scenesLeft) };
   }
 
   report(fraction = 0) {
@@ -2972,7 +2964,7 @@ class Runner {
     const total = this.doneUnits + Math.max(0, left);
     const pct = total > 0 ? (this.doneUnits + fraction) / total : 0;
     this.app.progress(pct);
-    this.app.updateEta(this.app.clock.estimate(r), Number(this.app.doc.run.targetGood) > 0);
+    this.app.updateEta(this.app.clock.estimate(r));
   }
 
   // VRAM
@@ -3054,7 +3046,6 @@ class Runner {
     const signal = this.ctl.signal;
     this.checkFails = 0;
     this.checkDisabled = false;
-    this.endChecked = false;
     this.doneUnits = 0;
     this.plan = scenes.map((s) => ({ id: s.id, total: Doc.perScene(doc, s), done: 0, closed: false }));
     const started = Date.now();
@@ -3067,8 +3058,6 @@ class Runner {
         const scene = scenes[si];
         const plan = this.plan[si];
         const total = plan.total;
-        const chunk = this.chunkSize(run, total);
-        const target = Number(run.targetGood) || 0;
         const good = () => Judge.counts(app.images.list(scene.id), run).good;
         let phaseName = "gen";
         const title = () => fmt(M.runTitle, {
@@ -3076,39 +3065,23 @@ class Runner {
           phase: L.phasesVerb[phaseName], made: plan.done, total, good: good(),
         });
         app.markRunning(scene.id);
+        await this.ensureImageVram(signal);
         while (plan.done < total) {
-          if (run.check && !this.checkDisabled && target > 0 && good() >= target) break;
-          const k = Math.min(chunk, total - plan.done);
-          await this.ensureImageVram(signal);
-          for (let j = 0; j < k; j++) {
-            phaseName = "gen";
-            app.phase("gen", title());
-            app.status(fmt(M.runImage, { pct: 0 }));
-            await this.generateOne(doc, scene, app.images.list(scene.id).length, signal);
-            plan.done++;
-            made++;
-            this.doneUnits++;
-            app.sceneChanged(scene.id);
-            this.report();
-          }
-          if (run.check && run.timing !== "end") {
-            phaseName = "check";
-            await this.checkPending(doc, scene, signal, title);
-          }
+          app.phase("gen", title());
+          app.status(fmt(M.runImage, { pct: 0 }));
+          await this.generateOne(doc, scene, app.images.list(scene.id).length, signal);
+          plan.done++;
+          made++;
+          this.doneUnits++;
+          app.sceneChanged(scene.id);
+          this.report();
         }
         plan.closed = true;
-        this.report();
-      }
-      if (run.check && run.timing === "end") {
-        for (let si = 0; si < scenes.length; si++) {
-          const scene = scenes[si];
-          app.markRunning(scene.id);
-          await this.checkPending(doc, scene, signal, () => fmt(M.runTitle, {
-            i: si + 1, n: scenes.length, title: scene.title || `#${doc.scenes.indexOf(scene) + 1}`, phase: L.phasesVerb.check,
-            made: this.plan[si].done, total: this.plan[si].total, good: Judge.counts(app.images.list(scene.id), run).good,
-          }));
+        if (run.check) {
+          phaseName = "check";
+          await this.checkPending(doc, scene, signal, title);
         }
-        this.endChecked = true;
+        this.report();
       }
       const goodAll = scenes.reduce((n, s) => n + Judge.counts(app.images.list(s.id), run).good, 0);
       const lacking = scenes.filter((s) => Judge.lacking(app.images.list(s.id), run)).map((s) => `#${doc.scenes.indexOf(s) + 1}`);
@@ -3270,6 +3243,45 @@ class ClipTitle {
       if (cut) { el.title = el.innerText.trim(); el.dataset.autoTitle = "1"; }
       else if (el.dataset.autoTitle) { el.removeAttribute("title"); delete el.dataset.autoTitle; }
     });
+  }
+}
+
+// ===== AUTO-GROWING TEXT AREAS (THE WHOLE TEXT IS ALWAYS VISIBLE) =====
+class AutoGrow {
+  static fit(el) {
+    if (!el.isConnected || !el.offsetParent) return;
+    el.style.height = "0px";
+    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
+  }
+
+  static fitAll(root) {
+    root.querySelectorAll?.("textarea.autogrow").forEach((el) => this.fit(el));
+  }
+
+  static watch(root, columns, bag) {
+    const mark = (el) => { el.classList.add("autogrow"); requestAnimationFrame(() => this.fit(el)); };
+    root.querySelectorAll("textarea").forEach(mark);
+    const obs = new MutationObserver((list) => {
+      for (const rec of list) for (const node of rec.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (node.matches("textarea")) mark(node);
+        node.querySelectorAll("textarea").forEach(mark);
+      }
+    });
+    obs.observe(root, { childList: true, subtree: true });
+    bag.on(root, "input", (e) => { if (e.target.matches?.("textarea.autogrow")) this.fit(e.target); });
+    bag.on(root, "toggle", (e) => this.fitAll(e.target), true);
+    const widths = new Map();
+    const ro = new ResizeObserver((entries) => {
+      for (const en of entries) {
+        const w = Math.round(en.contentRect.width);
+        if (widths.get(en.target) === w) continue;
+        widths.set(en.target, w);
+        this.fitAll(en.target);
+      }
+    });
+    columns.forEach((el) => ro.observe(el));
+    return { disconnect() { obs.disconnect(); ro.disconnect(); } };
   }
 }
 
@@ -3611,22 +3623,16 @@ class RightPanel {
     const lim = USER_SETTINGS.limits;
     const sl = USER_SETTINGS.sliders;
     const changed = () => { app.docChanged(false); app.updateRunNote(); app.board.updateAllImages(); app.setStrip.render(); };
-    const timingNote = h("p", { class: "note", text: L.timingNote[r.timing] || "" });
-    const chunkRow = h("div", {}, ...Form.prop(L.chunk, Form.number(r, "chunk", changed, lim.chunk, { slider: sl.chunk })));
-    let sync = () => {};
     const checkBox = h("div", { style: "display:flex;flex-direction:column;gap:6px" },
       Form.prop(L.threshold, Form.number(r, "threshold", changed, lim.threshold, { slider: sl.threshold, "data-key": "threshold" })),
       Form.check(r, "strictScene", L.strictScene, changed),
-      Form.prop(L.timing, Form.seg(USER_SETTINGS.checkTimings.map(([k, v]) => [k, v.replace(/（.*）/, "")]), r.timing, (v) => { r.timing = v; sync(); changed(); })),
-      timingNote,
-      chunkRow);
-    sync = () => { chunkRow.hidden = r.timing !== "chunk"; checkBox.hidden = !r.check; timingNote.textContent = L.timingNote[r.timing] || ""; };
+      h("p", { class: "note", text: L.checkFlow }));
+    const sync = () => { checkBox.hidden = !r.check; };
     sync();
     const llm = app.store.data.llm;
     return [
       Form.section("count", L.secCount, [
         Form.prop(L.perScene, Form.number(r, "perScene", () => { changed(); app.board.render(); }, lim.perScene, { slider: sl.perScene, "data-key": "perScene" })),
-        Form.prop(L.targetGood, Form.number(r, "targetGood", changed, lim.targetGood, { slider: sl.targetGood }), { note: L.targetGoodNote }),
       ]),
       Form.section("check", L.secCheck, [
         Form.check(r, "check", L.check, () => { sync(); changed(); }),
@@ -3720,8 +3726,8 @@ class SceneBoard {
     const app = this.app;
     const doc = app.doc;
     const changed = () => { app.docChanged(false); this.updatePreview(scene.id); };
-    const stat = h("span", { class: "scene-stat clip" });
-    const thumbs = h("div", { class: "thumbs" });
+    const stat = h("span", { class: "scene-stat" });
+    const media = h("div", { class: "scene-media" });
     const preview = h("pre", { class: "preview-prompt" });
     const move = (d) => {
       const list = doc.scenes;
@@ -3763,8 +3769,8 @@ class SceneBoard {
           h("div", { class: "field" }, h("div", { class: "row", style: "justify-content:space-between" }, h("span", { text: L.scenePrompt }), rewrite), promptIn),
           this.extraSection(scene, changed),
           h("details", {}, h("summary", { text: L.previewPrompt }), preview)),
-        thumbs));
-    this.cards.set(scene.id, { el, stat, thumbs, preview, promptIn });
+        media));
+    this.cards.set(scene.id, { el, stat, media, preview, promptIn });
     this.updatePreview(scene.id);
     this.updateImages(scene.id);
     return el;
@@ -3802,10 +3808,10 @@ class SceneBoard {
     const total = scene ? Doc.perScene(app.doc, scene) : 0;
     card.stat.innerHTML = fmt(L.statLine, { total: `${c.total}/${total}`, good: c.good, ng: c.ng, pending: c.pending }) + (picked ? esc(fmt(L.statPicked, { n: list.indexOf(picked) + 1 })) : "");
     if (!list.length) {
-      card.thumbs.replaceChildren(h("div", { class: "thumbs-empty", text: L.noImages }));
+      card.media.replaceChildren(h("div", { class: "thumbs-empty", text: L.noImages }));
       return;
     }
-    card.thumbs.replaceChildren(...list.map((img, i) => {
+    const thumbs = h("div", { class: "thumbs" }, ...list.map((img, i) => {
       const v = Judge.verdict(img, run);
       const badge = img.check?.state === "done" ? fmt(L.scorePt, { score: img.check.score }) : img.check?.state === "error" ? "!" : img.manual ? (v ? L.ok : L.ng) : `#${i + 1}`;
       const pinned = app.picks.get(sceneId) === img.id;
@@ -3817,6 +3823,17 @@ class SceneBoard {
         h("span", { class: `badge ${v === true ? "ok" : v === false ? "ng" : ""}`, text: badge }),
         h("button", { class: "pin", text: "★", title: L.pinTitle, "aria-pressed": String(pinned), disabled: !img.blob, onclick: (e) => { e.stopPropagation(); app.togglePin(sceneId, img.id); app.sceneChanged(sceneId); } }));
     }));
+    card.media.replaceChildren(thumbs, this.pickView(sceneId, list, picked));
+  }
+
+  pickView(sceneId, list, picked) {
+    if (!picked) return h("div", { class: "scene-pick" }, h("div", { class: "scene-pick-empty", text: L.pickNone }));
+    const app = this.app;
+    const score = picked.check?.state === "done" ? fmt(L.scorePt, { score: picked.check.score }) : L.viewerUnchecked;
+    const mode = app.picks.get(sceneId) === picked.id ? L.setPinned : L.setAuto;
+    return h("div", { class: "scene-pick" },
+      h("button", { class: "scene-pick-frame", title: L.pickOpen, onclick: () => app.viewer.open(sceneId, picked.id) }, h("img", { src: picked.url || picked.thumb, alt: "" })),
+      h("div", { class: "scene-pick-cap", text: fmt(L.pickCap, { no: list.indexOf(picked) + 1, score, mode }) }));
   }
 
   setRunning(sceneId) {
@@ -3919,6 +3936,8 @@ class Viewer {
     const pinned = app.picks.get(this.sceneId) === img.id;
     $("viewer-title").textContent = `#${app.doc.scenes.indexOf(scene) + 1} ${scene.title || ""} ・ ${list.indexOf(img) + 1}/${list.length}`;
     $("viewer-img").src = img.url || img.thumb;
+    $("viewer-prev").disabled = list.indexOf(img) <= 0;
+    $("viewer-next").disabled = list.indexOf(img) >= list.length - 1;
     const c = img.check;
     const scoreText = c?.state === "done" ? fmt(L.scorePt, { score: c.score }) : c?.state === "error" ? L.checkError : L.viewerUnchecked;
     const verdictText = v === true ? L.ok : v === false ? L.ng : "";
@@ -4171,12 +4190,11 @@ class SettingsDialog {
     const P = USER_SETTINGS.pages.check;
     const r = this.app.doc.run;
     const list = (items) => h("ul", { class: "steps" }, ...items.map((t) => h("li", { text: t })));
-    const timings = h("table", { class: "tbl" }, h("tbody", {}, ...USER_SETTINGS.checkTimings.map(([k, label]) => h("tr", {}, h("th", { text: label + (r.timing === k ? " ✓" : "") }), h("td", { text: L.timingNote[k] })))));
     return [
       h("p", { class: "lead", text: P.lead }),
       this.card(P.rule, list(P.rules), h("p", { class: "note keep", text: `${L.threshold}: ${r.threshold} ／ ${L.strictScene}: ${r.strictScene ? "オン" : "オフ"}` })),
       this.card(P.pick, list(P.picks)),
-      this.card(P.timing, timings),
+      this.card(P.flow, h("p", { class: "note keep", text: L.checkFlow })),
       this.card(P.prompts, ...Object.entries(P.promptNames).map(([key, name]) => h("details", {}, h("summary", { text: name }), h("pre", { text: USER_SETTINGS[key] })))),
     ];
   }
@@ -4229,6 +4247,7 @@ class App {
     this.runner = new Runner(this);
     this.bag = new Listeners();
     this.numbers = NumberControl.watch(document.body);
+    this.grow = AutoGrow.watch(document.body, [...document.querySelectorAll(".col-left, .col-center, .col-right")], this.bag);
     this.left = new LeftPanel(this);
     this.right = new RightPanel(this);
     this.board = new SceneBoard(this);
@@ -4258,6 +4277,7 @@ class App {
     this.runner.stop();
     clearInterval(this.etaTimer);
     this.numbers.disconnect();
+    this.grow.disconnect();
     for (const part of [this.bag, this.left, this.right, this.board, this.setStrip, this.viewer, this.show, this.settings]) part.destroy();
     this.images.clearAll();
   }
@@ -4481,8 +4501,7 @@ class App {
     const r = this.doc.run;
     const ids = this.doc.scenes.map((s) => s.id);
     const total = this.doc.scenes.reduce((n, s) => n + Doc.perScene(this.doc, s), 0);
-    const timing = (USER_SETTINGS.checkTimings.find(([k]) => k === r.timing) || [, ""])[1].replace(/（.*）/, "");
-    const check = r.check ? fmt(L.runNoteCheck, { timing, threshold: r.threshold }) : L.runNoteNoCheck;
+    const check = r.check ? fmt(L.runNoteCheck, { threshold: r.threshold }) : L.runNoteNoCheck;
     $("run-note").textContent = ids.length ? fmt(L.runNote, { scenes: ids.length, per: r.perScene, total, check }) : "";
   }
 
@@ -4517,14 +4536,14 @@ class App {
     document.title = this.runner.busy ? `(${pct}%) ${USER_SETTINGS.appName}` : USER_SETTINGS.appName;
   }
 
-  updateEta(est, maybeEarlier = false) {
+  updateEta(est) {
     const el = $("run-eta");
     clearInterval(this.etaTimer);
     this.etaTimer = null;
     if (!this.runner.busy) { el.textContent = ""; el.title = ""; document.title = USER_SETTINGS.appName; return; }
     if (!est) { el.textContent = M.etaMeasuring; return; }
     const deadline = Date.now() + est.ms;
-    const tpl = maybeEarlier || est.partial ? M.etaMax : M.eta;
+    const tpl = est.partial ? M.etaMax : M.eta;
     const paint = () => { el.textContent = fmt(tpl, { time: formatDuration(Math.max(0, deadline - Date.now())) }); };
     el.title = fmt(M.etaTitle, { gen: formatDuration(this.clock.avg.gen || 0), check: this.clock.has("check") ? formatDuration(this.clock.avg.check) : "—" });
     paint();
@@ -4616,6 +4635,7 @@ class App {
       if (out.count) { scene.count = out.count; countIn.value = out.count; }
       scene.prompt = out.prompt;
       promptIn.value = out.prompt;
+      AutoGrow.fit(promptIn);
       this.docChanged(false);
       this.board.updatePreview(scene.id);
       this.phase("done", "");
