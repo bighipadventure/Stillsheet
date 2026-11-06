@@ -1048,14 +1048,16 @@ install()
       model: "", vae: "", width: 832, height: 1216,
       settings: { sampler: "Euler a", scheduler: "Automatic", steps: 28, cfg: 6, seed: -1, clipSkip: 2 },
     },
-    run: { perScene: 30, check: true, threshold: 70, strictScene: true, keepRejected: true, target: "all" },
+    run: { perScene: 30, check: true, threshold: 70, strictScene: true, matchThreshold: 70, autoExtra: true, keepRejected: true, target: "all" },
     cast: [{ id: "c1", name: "", prompt: "", note: "" }],
     locations: [],
     scenes: [],
   },
   defaultScene: { title: "", text: "", cast: [], location: "", count: "", prompt: "", negative: "", perScene: null, width: null, height: null, seed: null },
-  limits: { sceneCount: [1, 40], perScene: [1, 500], threshold: [0, 100], steps: [1, 150], cfg: [1, 30], clipSkip: [1, 12], side: [256, 4096], temperature: [0, 2], maxTokens: [256, 131072] },
-  sliders: { perScene: [1, 100], threshold: [0, 100], steps: [1, 80], cfg: [1, 15], side: [512, 2048], temperature: [0, 1.5] },
+  autoExtra: { maxRounds: 3 },
+  anatomyScoreCap: 20,
+  limits: { sceneCount: [1, 40], perScene: [1, 500], threshold: [0, 100], matchThreshold: [0, 100], steps: [1, 150], cfg: [1, 30], clipSkip: [1, 12], side: [256, 4096], temperature: [0, 2], maxTokens: [256, 131072] },
+  sliders: { perScene: [1, 100], threshold: [0, 100], matchThreshold: [0, 100], steps: [1, 80], cfg: [1, 15], side: [512, 2048], temperature: [0, 1.5] },
   storyPrompt: `You are a picture-story (kamishibai) writer and an image-prompt writer.
 You receive: the user's rough idea (often Japanese), the cast (id, name, notes, look), the locations (id, name, notes, look), the number of scenes and the prompt style.
 Plan a story of EXACTLY the requested number of scenes, in order. Each scene becomes ONE still illustration, so each scene is one clear moment that can be drawn in a single picture, with at most three characters.
@@ -1075,17 +1077,22 @@ Write:
 - "count": the people count, such as "1girl", "1boy, 1girl" or "no humans".
 - "prompt": the scene-specific prompt in English: action, pose, expression, composition and camera, lighting, time, weather and props. Do NOT describe the characters' appearance or outfit, the art style or quality tags. Describe the place only when no location is given.
 Output ONLY one JSON object: {"count": "", "prompt": ""}`,
-  checkPrompt: `You are a strict quality checker for AI-generated illustrations. Look for drawing failures, not for taste.
-Check carefully:
-1. Hands and fingers: extra, missing, fused or twisted fingers; hands merged with objects.
-2. Arms and legs: extra, missing or detached limbs, joints bending the wrong way, impossible poses.
-3. Faces and eyes: melted or doubled faces, broken eyes, very asymmetric features.
-4. Bodies merged with each other or with the background, duplicated people, wrong number of people.
-5. Broken objects, garbled backgrounds, heavy noise or artifacts, unwanted text, signatures or watermarks.
-You also receive what the scene should show. Set "mismatch" to true only when the number of people or the main action is clearly different from the scene.
-Give "score" from 0 to 100 (100 = no visible failure at all; below 60 = clearly broken). Set "broken" to true when any failure would be noticed at first glance.
+  checkPrompt: `You are a very strict quality inspector for AI-generated illustrations. Be harsh: when in doubt, deduct. Most AI images have at least one flaw, so a typical image should land between 40 and 75, and only a truly clean image that matches the prompt may reach 85 or more.
+You receive the image prompt and what the scene should show. Judge two things separately.
+
+A. Drawing quality. Start from 100 and deduct:
+- ANATOMY FAILURE (instant fail): any visible hand or foot with the wrong number of fingers or toes, fused, melted, twisted, branching or boneless fingers or toes, a hand that is an unreadable blob, an extra, missing, detached, duplicated or impossibly bent arm or leg, an extra head, or a body part merged into another body or object. Count the fingers of every visible hand and the toes of every visible bare foot. If any of these exists, set "anatomy" to true, set "broken" to true and give "score" 20 or lower. Hands or feet that are naturally hidden, out of frame or inside pockets or gloves are not a failure.
+- Face and eyes: melted, doubled or smeared faces, mismatched or broken eyes, distorted teeth: -25 to -40.
+- Body proportions, wrong perspective, a neck or torso that is too long, shoulders at impossible angles: -15 to -30.
+- Duplicated people, wrong number of people: -30.
+- Broken objects, garbled background, warped lines, heavy noise, blur, artifacts, unwanted text, signatures or watermarks: -10 to -25 each.
+- Minor flaws (slightly odd fingers that still have the right count, small asymmetry, muddy details): -5 to -10 each.
+Set "broken" to true when any serious failure would be noticed at first glance.
+
+B. Prompt fidelity. Split the image prompt into its requested elements (people and count, character features, clothing, pose and action, expression, props, place, time, weather, lighting, camera). Ignore quality tags and style words. "prompt_match" is the percentage (0-100) of requested elements that are clearly visible and correct. List every requested element that is missing or wrong in "missing". Set "mismatch" to true when the number of people or the main action is clearly different from the scene.
+
 Output ONLY one JSON object, with no explanation and no markdown:
-{"score": 85, "broken": false, "mismatch": false, "issues": ["Japanese, one short sentence per problem"]}`,
+{"score": 62, "anatomy": false, "broken": false, "prompt_match": 80, "mismatch": false, "missing": ["Japanese, one short phrase per missing element"], "issues": ["Japanese, one short sentence per drawing problem"]}`,
   labels: {
     secBase: "① ベース画像（お気に入りの1枚）",
     secStory: "② ストーリー",
@@ -1149,13 +1156,23 @@ Output ONLY one JSON object, with no explanation and no markdown:
     check: "生成した画像を文章AIでチェックする",
     checkNote: "画像を読めるモデルが必要です。オフにすると、指定枚数を順番に作るだけになります。",
     threshold: "合格の点数",
-    strictScene: "シーンの内容と違う絵（人数・動作）も不合格にする",
-    checkFlow: "シーンごとに指定枚数をまとめて作り終えてから、文章AIに渡してまとめてチェックします。画像AIと文章AIの入れ替えはシーンごとに1回で済みます。",
+    strictScene: "プロンプトどおりでない絵も不合格にする",
+    matchThreshold: "再現度の下限",
+    matchThresholdNote: "文章AIが、プロンプトの要素（人数・服・ポーズ・小物・場所など）のうち絵に出ている割合（%）を出します。この値より低いと不合格です。",
+    anatomyNote: "手足の指の数や形の崩れ、腕や脚の欠け・増えなど人体の破綻は、点数に関係なく不合格にします（点数も 20 点以下にします）。",
+    autoExtra: "合格がないシーンを作り直す（最大 3 回）",
+    autoExtraNote: "全シーンをチェックし終えて合格が1枚もないシーンがあれば、そのシーンだけ「1シーンの枚数」ぶん作り直して、またチェックします。",
+    matchPct: "再現度 {v}%",
+    anatomyNg: "人体の破綻",
+    missingHead: "プロンプトどおりでないところ",
+    checkFlow: "まず全シーンの画像を指定枚数ずつ作り、作り終えてから文章AIが全シーンをまとめてチェックします。合格がないシーンは作り直して、またまとめてチェックします。画像AIと文章AIの入れ替えは、その回ごとに1回で済みます。",
     keepRejected: "不合格の画像も手元に残す",
     keepRejectedNote: "オフにすると、不合格の画像は縮小画像だけ残してメモリを節約します（元の画像は画像AIの出力フォルダにあります）。",
     freeVram: "チェックの前に画像AIのモデルを VRAM から外す",
     saveAll: "全部を保存",
     saveAllNote: "ストーリー・シーン・登場人物・場所・画像の設定・ベース画像すべて",
+    saveWithImages: "画像も含めて保存",
+    saveWithImagesNote: "「全部を保存」の中身に加えて、生成した画像・点数・合否・★の選択も入れます。開くと画像まで元どおりに戻ります（ファイルは大きくなります）",
     saveSituation: "シチュを保存",
     saveSituationNote: "ストーリー・シーン・場所だけ（登場人物と画像の設定は含めない）。別のキャラで同じシチュを作るとき用",
     saveCast: "キャストを保存",
@@ -1244,7 +1261,7 @@ Output ONLY one JSON object, with no explanation and no markdown:
     exportAllGood: "ZIP に合格画像もすべて入れる",
     baseKeys: { model: "Checkpoint", vae: "VAE", sampler: "サンプラー", scheduler: "スケジューラー", steps: "ステップ", cfg: "CFG", clipSkip: "Clip skip", size: "大きさ", negative: "ネガティブ", loras: "LoRA", quality: "品質タグ", seed: "シード" },
     runNote: "{scenes}シーン × 最大{per}枚（計 最大{total}枚）・{check}",
-    runNoteCheck: "チェックあり（シーンごと・{threshold}点で合格）",
+    runNoteCheck: "チェックあり（全シーンを作ってからまとめて・{threshold}点で合格）",
     runNoteNoCheck: "チェックなし",
     fixOpen: "開く",
     phasesVerb: { gen: "生成中", check: "チェック中" },
@@ -1299,7 +1316,8 @@ Output ONLY one JSON object, with no explanation and no markdown:
       rules: [
         "点数が「合格の点数」以上",
         "目立つ崩れ（broken）がない",
-        "「シーンの内容と違う絵も不合格にする」がオンのときは、人数や動作がシーンと大きく違わない（mismatch でない）",
+        "手足の指・腕・脚など人体の破綻がない（あれば点数に関係なく不合格。点数も 20 点以下）",
+        "「プロンプトどおりでない絵も不合格にする」がオンのときは、人数や動作がシーンと大きく違わず、プロンプトの再現度が下限以上",
         "手で「合格にする / 不合格にする」を押した画像は、その判定が優先されます",
       ],
       pick: "セットに入る1枚",
@@ -1316,12 +1334,13 @@ Output ONLY one JSON object, with no explanation and no markdown:
       lead: "作業の状態はブラウザに保存しません。ページを閉じたり再読み込みしたりすると消えるので、続きを作るときは「保存 ▾」で JSON に保存してください（画面の幅や接続先などの設定だけはブラウザに残ります）。",
       kinds: [
         ["全部を保存", "ストーリー・シーン・登場人物・場所・画像の設定・生成とチェックの設定・ベース画像", "まるごと入れ替わります"],
+        ["画像も含めて保存", "「全部を保存」の中身＋生成した画像・点数・合否・★の選択", "まるごと入れ替わり、画像まで元どおりに戻ります"],
         ["シチュを保存", "ストーリー・シーン・場所・生成とチェックの設定（登場人物と画像の設定は含めない）", "いまの登場人物と画像の設定のまま、シーンだけが入れ替わります"],
         ["キャストを保存", "登場人物だけ", "シーンはそのままで、A・B… の中身だけが入れ替わります"],
       ],
       head: ["保存", "中身", "開いたとき"],
       images: "生成した画像",
-      imagesNote: "画像は JSON に入りません。「セット」欄の「ダウンロード（ZIP）」か「Prompt Reel に投稿」で残してください。元の画像は画像AIの出力フォルダにもすべて保存されています。",
+      imagesNote: "「全部を保存」「シチュを保存」「キャストを保存」の JSON には画像は入りません。続きから作業したいときは「画像も含めて保存」を使ってください。完成したセットは「セット」欄の「ダウンロード（ZIP）」か「Prompt Reel に投稿」で残せます。元の画像は画像AIの出力フォルダにもすべて保存されています。",
       zip: "ZIP の中身: 各シーンの1枚（01_タイトル.png…、生成情報入り）・story.txt（タイトルとナレーション）・stillsheet.json（全部を保存した JSON）。「ZIP に合格画像もすべて入れる」をオンにすると good/ にも入ります。",
       reel: "Prompt Reel に投稿: 各シーンの1枚をシーンの順に、1枚目を □1、2枚目からを差分として投稿画面に渡します。タイトルとメモ（あらすじ・ナレーション）は空欄のときだけ入ります。",
     },
@@ -1330,7 +1349,7 @@ Output ONLY one JSON object, with no explanation and no markdown:
   help: [
     { title: "最初に接続する", items: ["「設定」→「はじめに」の手順で、画像AIに web-app-cors を入れ、文章AIで CORS をオンにします。", "右上の「文章AI」「画像AI」が緑になればつながっています。あとからAIを起動したときは「更新」を押します。"] },
     { title: "お気に入りの1枚から始める", items: ["左の「① ベース画像」に画像をドロップすると、その画像の設定を右の「画像の共通設定」に流し込みます。", "品質タグを除いた残りのプロンプトでシーン1を作るので、あとはプロンプトを変えて生成するだけです。", "「シードも引き継ぐ」をオンにして「もう一度流し込む」と、シードもベースと同じにします。"] },
-    { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・出る人・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、シーンごとに指定枚数をまとめて作り、作り終えたら文章AIがまとめてチェックします（VRAM の入れ替えはシーンごとに1回）。"] },
+    { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・出る人・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、まず全シーンの画像を指定枚数ずつ作り、作り終えたら文章AIが全シーンをまとめてチェックします。合格がないシーンだけ作り直して、またチェックします。"] },
     { title: "自分で組んだプロンプトを順番に作る", items: ["「＋ シーンを追加」でシーンを並べ、プロンプトを書きます。チェックを切れば、指定枚数を順番に作るだけの補助ツールになります。", "日本語のタイトル・ナレーションだけ書いて「✦ 文から書き直す」を押すと、そのシーンのプロンプトだけを文章AIが書きます。", "「このシーンだけの設定」で、枚数・大きさ（横長の構図だけ横向きなど）・シード（お気に入りのシードを固定）・追加のネガティブを変えられます。"] },
     { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルの ★ を押すとその1枚に固定し、もう一度押すと自動に戻ります。", "画像を開くと、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
     { title: "同じシチュを別のキャラで作る", items: ["「保存 ▾」→「シチュを保存」でシーンを保存し、キャラごとに「キャストを保存」しておきます。", "「開く」でシチュとキャストを開くと、組み合わせを入れ替えて同じシチュを何組でも作れます。"] },
@@ -1363,6 +1382,7 @@ Output ONLY one JSON object, with no explanation and no markdown:
     runTitleEnd: "全 {n} シーンの画像を{phase}（{k}/{m}枚）",
     runImage: "画像を生成しています（{pct}%）…",
     runCheck: "文章AIが画像をチェックしています（{k}/{m}枚目）…",
+    runExtra: "合格が1枚もなかった {n} シーンを作り直しています（{k}/{max}回目）…",
     runFreeVram: "画像AIのモデルを VRAM から外しています（文章AIのチェックのため）…",
     runRestoreVram: "画像AIのモデルを読み込み直しています…",
     runDone: "完了しました（{scenes} シーン・{made} 枚・合格 {good} 枚・{time}）。セットがそろわなかったシーン: {lacking}",
@@ -1392,7 +1412,10 @@ Output ONLY one JSON object, with no explanation and no markdown:
     llmReplyHead: "\n返事の先頭: {head}",
     llmEmptyReply: "（返事が空でした）",
     savedProject: "保存しました。",
-    loadedProject: "読み込みました（{n} シーン）。画像は読み込まれません。",
+    loadedProject: "読み込みました（{n} シーン）。画像は入っていないファイルです。",
+    loadedProjectImages: "読み込みました（{n} シーン・画像 {m} 枚）。",
+    savingImages: "画像を JSON にまとめています（{k}/{m}枚）…",
+    savedProjectImages: "画像 {n} 枚を含めて保存しました。",
     loadFailed: "ファイルを読み込めませんでした。Stillsheet で保存した JSON か、PNG 画像を選んでください。",
     notProject: "Stillsheet の JSON ではありません。「保存 ▾」で保存したファイルを選んでください。",
     loadDiscard: "いまの画像（{n} 枚）は消えます。読み込みますか？",
@@ -2711,7 +2734,9 @@ class Judge {
     if (img.manual === "ng") return false;
     const c = img.check;
     if (!c || c.state !== "done") return null;
-    return c.score >= run.threshold && !c.broken && !(run.strictScene && c.mismatch);
+    if (c.anatomy) return false;
+    const offPrompt = c.mismatch || (Number.isFinite(c.match) && c.match < run.matchThreshold);
+    return c.score >= run.threshold && !c.broken && !(run.strictScene && offPrompt);
   }
 
   static counts(list, run) {
@@ -2803,14 +2828,20 @@ class StoryWriter {
 
 // ===== IMAGE CHECKER (VISION LLM LOOKS FOR BROKEN DRAWING) =====
 class ImageChecker {
-  static userText(doc, scene) {
+  static promptOf(doc, scene, img) {
+    const raw = img?.prompt || PromptBuilder.build(doc, scene).prompt;
+    return BaseImage.split(LoraTags.extract(raw).text).rest;
+  }
+
+  static userText(doc, scene, img) {
     const cast = PromptBuilder.castOf(doc, scene);
     return [
+      `Image prompt (check fidelity against this): ${this.promptOf(doc, scene, img) || "-"}`,
+      "",
       "What this scene should show:",
       `- title: ${scene.title || "-"}`,
       `- narration: ${scene.text || "-"}`,
       `- people: ${scene.count || "-"}${cast.length ? ` (${cast.map((c) => c.name || "unnamed").join(", ")})` : ""}`,
-      `- prompt: ${scene.prompt || "-"}`,
       "Check the attached image.",
     ].join("\n");
   }
@@ -2819,8 +2850,16 @@ class ImageChecker {
     const score = Number(obj.score);
     if (!Number.isFinite(score)) throw new Error("no score");
     const bool = (v) => v === true || v === "true" || v === "yes";
-    const issues = (Array.isArray(obj.issues) ? obj.issues : typeof obj.issues === "string" ? [obj.issues] : []).map((x) => String(x).trim()).filter(Boolean);
-    return { state: "done", score: clamp(Math.round(score), [0, 100]), broken: bool(obj.broken), mismatch: bool(obj.mismatch), issues };
+    const list = (v) => (Array.isArray(v) ? v : typeof v === "string" && v ? [v] : []).map((x) => String(x).trim()).filter(Boolean);
+    const anatomy = bool(obj.anatomy);
+    const match = Number(obj.prompt_match);
+    return {
+      state: "done", anatomy,
+      score: clamp(Math.round(anatomy ? Math.min(score, USER_SETTINGS.anatomyScoreCap) : score), [0, 100]),
+      broken: anatomy || bool(obj.broken), mismatch: bool(obj.mismatch),
+      match: Number.isFinite(match) ? clamp(Math.round(match), [0, 100]) : null,
+      missing: list(obj.missing), issues: list(obj.issues),
+    };
   }
 
   static async imageUrl(blob) {
@@ -2831,7 +2870,7 @@ class ImageChecker {
 
   static async check(llm, doc, scene, img, signal) {
     const url = await this.imageUrl(img.blob);
-    return llm.askJson(USER_SETTINGS.checkPrompt, this.userText(doc, scene), [url], signal, (obj) => this.accept(obj), M.checkBad);
+    return llm.askJson(USER_SETTINGS.checkPrompt, this.userText(doc, scene, img), [url], signal, (obj) => this.accept(obj), M.checkBad);
   }
 }
 
@@ -2937,25 +2976,23 @@ class Runner {
   }
 
   // PLAN AND REMAINING WORK
-  swapsFor(run, sceneLeft) {
+  swapsFor(run, gens, checks) {
     if (!run.check || this.checkDisabled || !this.app.store.data.llm.freeVram) return 0;
-    return sceneLeft * 2;
+    if (gens > 0) return this.vramFreed ? 2 : 1;
+    return checks > 0 && !this.vramFreed ? 1 : 0;
   }
 
   remaining() {
     const run = this.app.doc.run;
-    let gens = 0, scenesLeft = 0, pending = 0;
+    let gens = 0, pending = 0;
     for (const p of this.plan) {
-      if (p.closed) continue;
-      const left = Math.max(0, p.total - p.done);
-      gens += left;
-      if (left > 0) scenesLeft++;
+      if (!p.closed) gens += Math.max(0, p.total - p.done);
     }
     if (run.check && !this.checkDisabled) {
       for (const p of this.plan) pending += this.app.images.list(p.id).filter((i) => i.blob && (!i.check || i.check.state === "pending")).length;
     }
     const checks = run.check && !this.checkDisabled ? gens + pending : 0;
-    return { gens, checks, swaps: this.swapsFor(run, scenesLeft) };
+    return { gens, checks, swaps: this.swapsFor(run, gens, checks) };
   }
 
   report(fraction = 0) {
@@ -3054,32 +3091,49 @@ class Runner {
     try {
       await app.preflight(scenes);
       this.report();
-      for (let si = 0; si < scenes.length; si++) {
-        const scene = scenes[si];
-        const plan = this.plan[si];
-        const total = plan.total;
-        const good = () => Judge.counts(app.images.list(scene.id), run).good;
-        let phaseName = "gen";
-        const title = () => fmt(M.runTitle, {
-          i: si + 1, n: scenes.length, title: scene.title || `#${doc.scenes.indexOf(scene) + 1}`,
-          phase: L.phasesVerb[phaseName], made: plan.done, total, good: good(),
-        });
-        app.markRunning(scene.id);
+      const extra = USER_SETTINGS.autoExtra;
+      const good = (si) => Judge.counts(app.images.list(scenes[si].id), run).good;
+      let phaseName = "gen";
+      let round = 0;
+      const title = (si) => fmt(M.runTitle, {
+        i: si + 1, n: scenes.length, title: scenes[si].title || `#${doc.scenes.indexOf(scenes[si]) + 1}`,
+        phase: L.phasesVerb[phaseName], made: this.plan[si].done, total: this.plan[si].total, good: good(si),
+      });
+      let targets = scenes.map((_, si) => si);
+      for (;;) {
         await this.ensureImageVram(signal);
-        while (plan.done < total) {
-          app.phase("gen", title());
-          app.status(fmt(M.runImage, { pct: 0 }));
-          await this.generateOne(doc, scene, app.images.list(scene.id).length, signal);
-          plan.done++;
-          made++;
-          this.doneUnits++;
-          app.sceneChanged(scene.id);
-          this.report();
+        phaseName = "gen";
+        for (const si of targets) {
+          const scene = scenes[si];
+          const plan = this.plan[si];
+          app.markRunning(scene.id);
+          while (plan.done < plan.total) {
+            app.phase("gen", title(si));
+            app.status(round ? fmt(M.runExtra, { n: targets.length, k: round, max: extra.maxRounds }) : fmt(M.runImage, { pct: 0 }));
+            await this.generateOne(doc, scene, app.images.list(scene.id).length, signal);
+            plan.done++;
+            made++;
+            this.doneUnits++;
+            app.sceneChanged(scene.id);
+            this.report();
+          }
+          plan.closed = true;
         }
-        plan.closed = true;
-        if (run.check) {
-          phaseName = "check";
-          await this.checkPending(doc, scene, signal, title);
+        if (!run.check) break;
+        phaseName = "check";
+        for (const si of targets) {
+          if (this.checkDisabled) break;
+          app.markRunning(scenes[si].id);
+          await this.checkPending(doc, scenes[si], signal, () => title(si));
+        }
+        this.report();
+        if (!run.autoExtra || this.checkDisabled || round >= extra.maxRounds) break;
+        targets = targets.filter((si) => good(si) === 0);
+        if (!targets.length) break;
+        round++;
+        for (const si of targets) {
+          this.plan[si].total += Doc.perScene(doc, scenes[si]);
+          this.plan[si].closed = false;
         }
         this.report();
       }
@@ -3625,7 +3679,11 @@ class RightPanel {
     const changed = () => { app.docChanged(false); app.updateRunNote(); app.board.updateAllImages(); app.setStrip.render(); };
     const checkBox = h("div", { style: "display:flex;flex-direction:column;gap:6px" },
       Form.prop(L.threshold, Form.number(r, "threshold", changed, lim.threshold, { slider: sl.threshold, "data-key": "threshold" })),
+      h("p", { class: "note", text: L.anatomyNote }),
       Form.check(r, "strictScene", L.strictScene, changed),
+      Form.prop(L.matchThreshold, Form.number(r, "matchThreshold", changed, lim.matchThreshold, { slider: sl.matchThreshold }), { note: L.matchThresholdNote }),
+      Form.check(r, "autoExtra", L.autoExtra, changed),
+      h("p", { class: "note", text: L.autoExtraNote }),
       h("p", { class: "note", text: L.checkFlow }));
     const sync = () => { checkBox.hidden = !r.check; };
     sync();
@@ -3813,11 +3871,12 @@ class SceneBoard {
     }
     const thumbs = h("div", { class: "thumbs" }, ...list.map((img, i) => {
       const v = Judge.verdict(img, run);
-      const badge = img.check?.state === "done" ? fmt(L.scorePt, { score: img.check.score }) : img.check?.state === "error" ? "!" : img.manual ? (v ? L.ok : L.ng) : `#${i + 1}`;
+      const badge = img.check?.anatomy ? L.anatomyNg : img.check?.state === "done" ? fmt(L.scorePt, { score: img.check.score }) : img.check?.state === "error" ? "!" : img.manual ? (v ? L.ok : L.ng) : `#${i + 1}`;
       const pinned = app.picks.get(sceneId) === img.id;
       const cls = ["thumb", v === true ? "ok" : v === false ? "ng" : "pending", img === picked ? "picked" : "", pinned ? "pinned" : ""].filter(Boolean).join(" ");
       const open = () => app.viewer.open(sceneId, img.id);
-      const tip = [`#${i + 1}`, img.check?.state === "done" ? fmt(L.scorePt, { score: img.check.score }) : img.check?.error, ...(img.check?.issues || [])].filter(Boolean).join("\n");
+      const ck = img.check;
+      const tip = [`#${i + 1}`, ck?.state === "done" ? fmt(L.scorePt, { score: ck.score }) : ck?.error, ck?.anatomy ? L.anatomyNg : "", Number.isFinite(ck?.match) ? fmt(L.matchPct, { v: ck.match }) : "", ...(ck?.issues || []), ...(ck?.missing || [])].filter(Boolean).join("\n");
       return h("div", { class: cls, title: tip, role: "button", tabindex: 0, "data-image": img.id, onclick: open, onkeydown: (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } } },
         h("img", { src: img.thumb, alt: "", loading: "lazy" }),
         h("span", { class: `badge ${v === true ? "ok" : v === false ? "ng" : ""}`, text: badge }),
@@ -3946,7 +4005,10 @@ class Viewer {
       h("div", { class: `score-big ${v === true ? "ok" : v === false ? "ng" : ""}`, text: `${scoreText}${verdictText ? " ・ " + verdictText : ""}` }),
       img.manual ? h("div", { class: "note", text: fmt(L.viewerManual, { v: img.manual === "ok" ? L.ok : L.ng }) }) : null,
       c?.state === "error" ? h("div", { class: "msg err", text: c.error }) : null,
+      c?.state === "done" ? h("div", { class: "note keep", text: [c.anatomy ? L.anatomyNg : "", Number.isFinite(c.match) ? fmt(L.matchPct, { v: c.match }) : ""].filter(Boolean).join(" ・ ") }) : null,
       c?.issues?.length ? h("ul", { class: "issues" }, ...c.issues.map((t) => h("li", { text: t }))) : null,
+      c?.missing?.length ? h("div", { class: "note keep", text: L.missingHead }) : null,
+      c?.missing?.length ? h("ul", { class: "issues" }, ...c.missing.map((t) => h("li", { text: t }))) : null,
       !img.blob ? h("div", { class: "msg warn", text: L.viewerNoFull }) : null,
       h("div", { class: "actions" },
         h("button", { class: "primary", text: pinned ? L.viewerUnpick : L.viewerPick, disabled: !img.blob, onclick: redo(() => app.togglePin(this.sceneId, img.id)) }),
@@ -4736,6 +4798,45 @@ class App {
     this.notice(M.savedProject, "ok");
   }
 
+  async saveProjectWithImages() {
+    const all = [...this.images.byScene.entries()].filter(([id]) => this.doc.scenes.some((sc) => sc.id === id));
+    const m = all.reduce((n, [, list]) => n + list.length, 0);
+    const images = {};
+    let k = 0;
+    for (const [sceneId, list] of all) {
+      images[sceneId] = [];
+      for (const img of list) {
+        this.status(fmt(M.savingImages, { k: ++k, m }));
+        const blob = img.blob || await (await fetch(img.thumb)).blob();
+        const { id, seed, info, prompt, negative, width, height, settings, check, manual, createdAt } = img;
+        images[sceneId].push({ id, data: await blobToDataUrl(blob), full: !!img.blob, seed, info, prompt, negative, width, height, settings, check, manual, createdAt });
+      }
+    }
+    const data = { ...Doc.serialize(this.doc), images, picks: Object.fromEntries(this.picks) };
+    downloadBlob(new Blob([JSON.stringify(data)], { type: "application/json" }), `${USER_SETTINGS.fileNamePrefix}${safeName(this.doc.title) || "project"}_images_${timestamp()}.json`);
+    this.dirty = false;
+    this.notice(fmt(M.savedProjectImages, { n: m }), "ok");
+  }
+
+  async restoreImages(obj) {
+    const saved = obj.images && typeof obj.images === "object" ? obj.images : {};
+    let m = 0;
+    for (const scene of this.doc.scenes) {
+      for (const it of Array.isArray(saved[scene.id]) ? saved[scene.id] : []) {
+        if (typeof it?.data !== "string" || !it.data.startsWith("data:image/")) continue;
+        const { data, full, ...fields } = it;
+        const img = await this.images.add(scene.id, { ...fields, blob: dataUrlToBlob(data) });
+        if (!full) this.images.dropFull(img);
+        m++;
+      }
+    }
+    for (const [sceneId, imageId] of Object.entries(obj.picks || {})) {
+      if (this.images.find(imageId)?.sceneId === sceneId) this.picks.set(sceneId, imageId);
+    }
+    if (m) this.renderAll();
+    return m;
+  }
+
   async openProject(file) {
     try {
       const obj = await readJsonFile(file);
@@ -4743,7 +4844,8 @@ class App {
       const n = this.imageCount();
       if (n && !confirm(fmt(M.loadDiscard, { n }))) return;
       this.replaceDoc(Doc.normalize(obj));
-      this.notice(fmt(M.loadedProject, { n: this.doc.scenes.length }), "ok");
+      const m = await this.restoreImages(obj);
+      this.notice(m ? fmt(M.loadedProjectImages, { n: this.doc.scenes.length, m }) : fmt(M.loadedProject, { n: this.doc.scenes.length }), "ok");
     } catch (err) {
       this.notice(err instanceof UserError ? err.message : M.loadFailed, "err");
     }
@@ -4963,6 +5065,7 @@ class App {
     const item = (label, note, fn) => h("button", { onclick: () => { menu.hidden = true; fn(); } }, label, h("small", { text: note }));
     menu.replaceChildren(
       item(L.saveAll, L.saveAllNote, () => this.saveProject()),
+      item(L.saveWithImages, L.saveWithImagesNote, () => this.saveProjectWithImages()),
       item(L.saveSituation, L.saveSituationNote, () => this.saveSituation()),
       item(L.saveCast, L.saveCastNote, () => this.saveCast()));
     const r = $("btn-save").getBoundingClientRect();
