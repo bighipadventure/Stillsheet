@@ -1365,7 +1365,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
   },
   help: [
     { title: "最初に接続する", items: ["「設定」→「はじめに」の手順で、画像AIに web-app-cors を入れ、文章AIで CORS をオンにします。", "右上の「文章AI」「画像AI」が緑になればつながっています。あとからAIを起動したときは「更新」を押します。"] },
-    { title: "お気に入りの1枚から始める", items: ["左の「① ベース画像」に画像をドロップすると、その画像の設定を右の「画像の共通設定」に流し込みます。", "品質タグを除いた残りのプロンプトでシーン1を作るので、あとはプロンプトを変えて生成するだけです。", "「シードも引き継ぐ」をオンにして「もう一度流し込む」と、シードもベースと同じにします。"] },
+    { title: "お気に入りの1枚から始める", items: ["左の「① ベース画像」に画像をドロップすると、その画像の設定を右の「画像の共通設定」に流し込みます。", "品質タグを除いた残りのプロンプトでシーン1を作るので、あとはプロンプトを変えて生成するだけです。", "品質タグ・ネガティブがすでに入っているときは上書きしません（画像の内容にするときは「もう一度流し込む」）。", "「シードも引き継ぐ」をオンにして「もう一度流し込む」と、シードもベースと同じにします。"] },
     { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・出る人・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、まず全シーンの画像を指定枚数ずつ作り、作り終えたら文章AIが全シーンをまとめてチェックします。合格がないシーンだけ作り直して、またチェックします。"] },
     { title: "自分で組んだプロンプトを順番に作る", items: ["「＋ シーンを追加」でシーンを並べ、プロンプトを書きます。チェックを切れば、指定枚数を順番に作るだけの補助ツールになります。", "日本語のタイトル・ナレーションだけ書いて「✦ 文から書き直す」を押すと、そのシーンのプロンプトだけを文章AIが書きます。", "「このシーンだけの設定」で、枚数・大きさ（横長の構図だけ横向きなど）・シード（お気に入りのシードを固定）・追加のネガティブを変えられます。"] },
     { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルをクリックするとその1枚が下に大きく出て、自動で ★（固定）が付きます。★ をもう一度押すと自動に戻ります。", "サムネイルをダブルクリックすると詳細が開き、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
@@ -1445,6 +1445,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     loadedSituation: "シチュを読み込みました（{n} シーン）。登場人物と画像の設定はそのままです。",
     situationDiscard: "いまのシーン（画像 {n} 枚を含む）を、読み込んだシチュで置き換えますか？",
     baseApplied: "ベース画像の設定を流し込みました: {list}",
+    baseKept: " {list}は入力済みなので、そのままにしました（画像の内容にするときは「もう一度流し込む」）",
     baseAppliedNone: "この画像には生成情報がありません。SD WebUI か ComfyUI で作った PNG をドロップしてください。",
     baseSceneAdded: "ベースのプロンプトでシーン {n} を追加しました。プロンプトを変えて生成してください。",
     baseCastSet: "ベースのプロンプトを登場人物 A の見た目に入れました。",
@@ -2485,13 +2486,18 @@ class BaseImage {
     return list?.length ? (list.find((x) => x.toLowerCase() === value.toLowerCase()) || value) : value;
   }
 
-  static apply(doc, base, { res = {}, backendKind = "a1111" } = {}) {
+  // keepText: 品質タグ・ネガティブがすでに入っていれば上書きしない（ドロップしたとき）。「もう一度流し込む」では上書きする
+  static apply(doc, base, { res = {}, backendKind = "a1111", keepText = false } = {}) {
     const c = doc.common;
     const s = c.settings;
     const used = [];
+    const kept = [];
     const set = (key, fn) => { fn(); used.push(L.baseKeys[key]); };
-    if (base.quality) set("quality", () => { c.quality = base.quality; });
-    if (base.negative) set("negative", () => { c.negative = base.negative; });
+    for (const key of ["quality", "negative"]) {
+      if (!base[key]) continue;
+      if (keepText && String(c[key] || "").trim()) kept.push(L.baseKeys[key]);
+      else set(key, () => { c[key] = base[key]; });
+    }
     if (base.model) set("model", () => { c.model = this.match(base.model, res.models); });
     if (base.vae && !USER_SETTINGS.autoValues.includes(base.vae)) set("vae", () => { c.vae = this.match(base.vae, res.vaes); });
     const bs = base.settings || {};
@@ -2506,6 +2512,7 @@ class BaseImage {
       c.suffix = PromptBuilder.tidy([keep, ...base.loras.map((l) => LoraTags.tag(l.name, l.weight))]);
     });
     if (base.useSeed && Number.isInteger(base.seed) && base.seed >= 0) set("seed", () => { s.seed = base.seed; });
+    used.kept = kept;
     return used;
   }
 
@@ -5002,19 +5009,22 @@ class App {
   async loadBase(file) {
     try {
       this.doc.base = await BaseImage.read(file);
-      const used = this.applyBase();
+      const used = this.applyBase({ keepText: true });
       if (!this.doc.scenes.length && this.doc.base.prompt) this.addSceneFromBase(true);
       this.left.render();
-      this.notice(used.length ? fmt(M.baseApplied, { list: used.join("・") }) : M.baseAppliedNone, used.length ? "ok" : "warn", used.length ? "image" : null);
+      const kept = used.kept.length ? fmt(M.baseKept, { list: used.kept.join("・") }) : "";
+      if (used.length) this.notice(fmt(M.baseApplied, { list: used.join("・") }) + kept, "ok", "image");
+      else if (kept) this.notice(kept.trim(), "ok", "image");
+      else this.notice(M.baseAppliedNone, "warn");
     } catch {
       this.notice(M.baseFailed, "err");
     }
   }
 
-  applyBase() {
+  applyBase({ keepText = false } = {}) {
     const base = this.doc.base;
     if (!base) return [];
-    const used = BaseImage.apply(this.doc, base, { res: this.res, backendKind: this.store.data.backend });
+    const used = BaseImage.apply(this.doc, base, { res: this.res, backendKind: this.store.data.backend, keepText });
     this.right.show("image");
     this.docChanged(true);
     return used;
