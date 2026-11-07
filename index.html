@@ -277,6 +277,8 @@ body.resizing * { user-select: none; }
   .scene-body { grid-template-columns: 1fr; }
 }
 .scene-run { margin-top: auto; width: 100%; }
+.preview-box { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.scene.custom-prompt .preview-details > summary { color: var(--accent); font-weight: 600; }
 .check-only { margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
 .check-only button { width: 100%; }
 .cast-checks { display: flex; flex-wrap: wrap; gap: 4px 12px; }
@@ -1061,7 +1063,7 @@ install()
     locations: [],
     scenes: [],
   },
-  defaultScene: { title: "", text: "", cast: [], location: "", count: "", prompt: "", negative: "", perScene: null, width: null, height: null, seed: null },
+  defaultScene: { title: "", text: "", cast: [], location: "", count: "", prompt: "", negative: "", perScene: null, width: null, height: null, seed: null, customPrompt: false, customText: "", customNegative: "" },
   autoExtra: { maxRounds: 3 },
   anatomyScoreCap: 20,
   limits: { sceneCount: [1, 40], perScene: [1, 500], threshold: [0, 100], matchThreshold: [0, 100], steps: [1, 150], cfg: [1, 30], clipSkip: [1, 12], side: [256, 4096], temperature: [0, 2], maxTokens: [256, 131072] },
@@ -1244,6 +1246,13 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     sceneSeedPlaceholder: "共通",
     overrides: { perScene: "{v}枚", size: "{w}×{h}", seed: "シード {v}", negative: "ネガティブ追加" },
     previewPrompt: "実際に送るプロンプトを見る",
+    previewPromptCustom: "実際に送るプロンプト（このシーンは個別指定中）",
+    customPrompt: "送るプロンプトを個別指定する",
+    customPromptOffNote: "オンにすると下の文面を直接直せます（LoRA の強さをこのシーンだけ変えるときなど）。",
+    customPromptNote: "オンの間は、この文面をそのまま送ります。上の欄（シーンのプロンプト・登場人物・場所・品質タグ・末尾・ネガティブ）を変えても、ここには反映されません。",
+    customPromptText: "送るプロンプト",
+    customPromptNegative: "送るネガティブ",
+    customPromptReset: "上の欄から組み立て直す",
     previewMeta: "大きさ {w}×{h}・シード {seed}・{n}枚",
     previewSeedRandom: "毎回ランダム",
     previewSeedFrom: "{v} から順に",
@@ -2655,7 +2664,14 @@ class PromptBuilder {
     return (scene.cast || []).map((id) => doc.cast.find((c) => c.id === id)).filter(Boolean);
   }
 
+  // 実際に送るプロンプト。シーンで「送るプロンプトを個別指定する」がオンなら、その文面をそのまま使う
   static build(doc, scene) {
+    if (scene.customPrompt) return { prompt: scene.customText || "", negative: scene.customNegative || "" };
+    return this.auto(doc, scene);
+  }
+
+  // 各欄（品質タグ・人数・登場人物・シーン・場所・末尾）から組み立てたプロンプト
+  static auto(doc, scene) {
     const c = doc.common;
     const loc = doc.locations.find((l) => l.id === scene.location);
     return {
@@ -2690,7 +2706,8 @@ class Doc {
     const castIds = new Set(out.cast.map((c) => c.id));
     const locIds = new Set(out.locations.map((l) => l.id));
     out.scenes = Array.isArray(d.scenes) ? d.scenes.map((s) => {
-      const sc = { ...clone(USER_SETTINGS.defaultScene), ...this.pickStrings(s || {}, ["title", "text", "count", "prompt", "negative", "location"]) };
+      const sc = { ...clone(USER_SETTINGS.defaultScene), ...this.pickStrings(s || {}, ["title", "text", "count", "prompt", "negative", "location", "customText", "customNegative"]) };
+      sc.customPrompt = !!s?.customPrompt;
       sc.id = typeof s?.id === "string" && s.id ? s.id : "s" + uid();
       sc.cast = Array.isArray(s?.cast) ? s.cast.filter((id) => castIds.has(id)) : [];
       if (!locIds.has(sc.location)) sc.location = "";
@@ -4025,7 +4042,9 @@ class SceneBoard {
     const changed = () => { app.docChanged(false); this.updatePreview(scene.id); };
     const stat = h("span", { class: "scene-stat" });
     const media = h("div", { class: "scene-media" });
-    const preview = h("pre", { class: "preview-prompt" });
+    const preview = h("div", { class: "preview-box" });
+    const previewSummary = h("summary", {});
+    const previewDetails = h("details", { class: "preview-details", open: !!scene.customPrompt, ontoggle: () => AutoGrow.fitAll(preview) }, previewSummary, preview);
     const move = (d) => {
       const list = doc.scenes;
       const j = index + d;
@@ -4064,10 +4083,10 @@ class SceneBoard {
             Form.field(L.sceneCountTag, countIn)),
           h("div", { class: "field" }, h("div", { class: "row", style: "justify-content:space-between" }, h("span", { text: L.scenePrompt }), rewrite), promptIn),
           this.extraSection(scene, changed),
-          h("details", {}, h("summary", { text: L.previewPrompt }), preview),
+          previewDetails,
           h("button", { class: "primary scene-run", text: L.runScene, disabled: app.runner.busy, onclick: () => app.run([scene.id]) })),
         media));
-    this.cards.set(scene.id, { el, stat, media, preview, promptIn });
+    this.cards.set(scene.id, { el, stat, media, preview, previewSummary, promptIn });
     this.updatePreview(scene.id);
     this.updateImages(scene.id);
     return el;
@@ -4078,11 +4097,51 @@ class SceneBoard {
     const doc = this.app.doc;
     const scene = doc.scenes.find((s) => s.id === sceneId);
     if (!card || !scene) return;
-    const p = PromptBuilder.build(doc, scene);
     const size = Runner.sizeOf(doc, scene);
     const base = Runner.seedBase(doc, scene);
     const seed = Number(base) >= 0 ? fmt(L.previewSeedFrom, { v: base }) : L.previewSeedRandom;
-    card.preview.textContent = `${fmt(L.previewMeta, { w: size.width, h: size.height, seed, n: Doc.perScene(doc, scene) })}\n\n${p.prompt}\n\nNegative: ${p.negative}`;
+    const meta = fmt(L.previewMeta, { w: size.width, h: size.height, seed, n: Doc.perScene(doc, scene) });
+    card.previewSummary.textContent = scene.customPrompt ? L.previewPromptCustom : L.previewPrompt;
+    card.el.classList.toggle("custom-prompt", !!scene.customPrompt);
+    // 個別指定の入力中は、打っている欄を作り直さない（上の行だけ更新する）
+    const metaEl = card.preview.querySelector(".preview-meta");
+    if (scene.customPrompt && card.preview.dataset.mode === "custom" && metaEl) { metaEl.textContent = meta; return; }
+    const app = this.app;
+    const changed = () => { app.docChanged(false); };
+    const toggle = Form.check(scene, "customPrompt", L.customPrompt, (k, on) => {
+      if (on && !scene.customText && !scene.customNegative) {
+        const auto = PromptBuilder.auto(doc, scene);
+        scene.customText = auto.prompt;
+        scene.customNegative = auto.negative;
+      }
+      app.docChanged(false);
+      card.preview.dataset.mode = "";
+      this.updatePreview(sceneId);
+    });
+    if (!scene.customPrompt) {
+      const p = PromptBuilder.auto(doc, scene);
+      card.preview.dataset.mode = "auto";
+      card.preview.replaceChildren(toggle, h("p", { class: "note", text: L.customPromptOffNote }), h("pre", { class: "preview-prompt" }, h("span", { class: "preview-meta", text: meta }), `\n\n${p.prompt}\n\nNegative: ${p.negative}`));
+      return;
+    }
+    const pos = Form.text(scene, "customText", changed, { rows: 4, "data-key": "customText" });
+    const neg = Form.text(scene, "customNegative", changed, { rows: 2, "data-key": "customNegative" });
+    const reset = h("button", { class: "mini", text: L.customPromptReset, onclick: () => {
+      const auto = PromptBuilder.auto(doc, scene);
+      pos.value = auto.prompt;
+      neg.value = auto.negative;
+      pos.dispatchEvent(new Event("input"));
+      neg.dispatchEvent(new Event("input"));
+      AutoGrow.fitAll(card.preview);
+    } });
+    card.preview.dataset.mode = "custom";
+    card.preview.replaceChildren(
+      toggle,
+      h("p", { class: "note", text: L.customPromptNote }),
+      h("pre", { class: "preview-prompt preview-meta", text: meta }),
+      Form.field(L.customPromptText, pos),
+      Form.field(L.customPromptNegative, neg),
+      h("div", { class: "row" }, reset));
   }
 
   updateAllPreviews() {
@@ -4254,8 +4313,12 @@ class Viewer {
     const pinned = app.picks.get(this.sceneId) === img.id;
     $("viewer-title").textContent = `#${app.doc.scenes.indexOf(scene) + 1} ${scene.title || ""} ・ ${list.indexOf(img) + 1}/${list.length}`;
     $("viewer-img").src = img.url || img.thumb;
-    $("viewer-prev").disabled = list.indexOf(img) <= 0;
-    $("viewer-next").disabled = list.indexOf(img) >= list.length - 1;
+    // 端まで来てボタンが押せなくなると、そこにあったフォーカスがダイアログの外へ外れて ← → が効かなくなるので、反対側へ移す
+    const prev = $("viewer-prev"), next = $("viewer-next");
+    const lost = document.activeElement;
+    prev.disabled = list.indexOf(img) <= 0;
+    next.disabled = list.indexOf(img) >= list.length - 1;
+    if (lost?.disabled && this.dlg.open) (lost === next ? prev : next).disabled ? this.dlg.focus() : (lost === next ? prev : next).focus();
     const c = img.check;
     const scoreText = c?.state === "done" ? fmt(L.scorePt, { score: c.score }) : c?.state === "error" ? L.checkError : L.viewerUnchecked;
     const verdictText = v === true ? L.ok : v === false ? L.ng : "";
