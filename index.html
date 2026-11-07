@@ -277,6 +277,8 @@ body.resizing * { user-select: none; }
   .scene-body { grid-template-columns: 1fr; }
 }
 .scene-run { margin-top: auto; width: 100%; }
+.check-only { margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.check-only button { width: 100%; }
 .cast-checks { display: flex; flex-wrap: wrap; gap: 4px 12px; }
 .scene-extra { border-top: 1px dashed var(--line); padding-top: 4px; }
 .scene-extra > summary { flex-wrap: wrap; }
@@ -1176,6 +1178,8 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     perScene: "1シーンの枚数",
     check: "生成した画像を文章AIでチェックする",
     checkNote: "画像を読めるモデルが必要です。オフにすると、指定枚数を順番に作るだけになります。",
+    checkOnly: "🔍 文章AIチェック",
+    checkOnlyNote: "生成済みの画像を、いまの基準で文章AIにチェックさせます（画像は作りません）。チェックが済んだ画像は飛ばします。チェックをオフにして生成したあとに使います。",
     threshold: "合格の点数",
     strictScene: "プロンプトどおりでない絵も不合格にする",
     matchThreshold: "再現度の下限",
@@ -1410,6 +1414,11 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     runRestoreVram: "画像AIのモデルを読み込み直しています…",
     runDone: "完了しました（{scenes} シーン・{made} 枚・合格 {good} 枚・{time}）。セットがそろわなかったシーン: {lacking}",
     runDoneAll: "完了しました（{scenes} シーン・{made} 枚・合格 {good} 枚・{time}）。全シーンのセットがそろいました。",
+    checkOnlyTitle: "シーン {i}/{n}「{title}」をチェック中",
+    checkOnlyDone: "文章AIチェックが終わりました（{checked} 枚をチェック・済みの {skipped} 枚は飛ばしました・合格 {good} 枚・{time}）。セットがそろわなかったシーン: {lacking}",
+    checkOnlyStopped: "チェックを中止しました（{checked} 枚までチェックしました）。",
+    checkOnlyNothing: "チェックしていない画像はありません（{skipped} 枚はチェック済みです）。",
+    checkOnlyNoImages: "まだ画像がありません。先に生成してください。",
     runStopped: "中止しました（{made} 枚作ったところまで残っています）。",
     runBusy: "生成中です。左上の「中止する」で止めるか、終わるまで待ってください。",
     eta: "残り 約{time}",
@@ -1488,6 +1497,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
       noTarget: "生成するシーンがありません（どのシーンも合格がそろっています）。左下の「全シーン」を選んでから押してください。",
       emptyPrompt: "シーン {n} のプロンプトが空です。シーン {n} の「このシーンのプロンプト」を書くか、「✦ 文から書き直す」を押してください。",
       needSceneText: "このシーンのタイトルかナレーションが空です。どちらかを書いてから「✦ 文から書き直す」を押してください。",
+      checkOnlyNoLlm: "文章AIにつながりません。文章AIを起動してから、もう一度「文章AIチェック」を押してください。",
       checkNoLlm: "画像のチェックに使う文章AIにつながりません。文章AIを起動して「更新」を押すか、右の「生成とチェック」でチェックをオフにしてください。",
     },
     fixActions: { settings: "設定を開く", settingsLlm: "文章AIの設定を開く", settingsGuide: "はじめにを開く", image: "画像の共通設定を開く", run: "生成とチェックを開く", story: "ストーリーへ移動", scene: "シーン {n} へ移動", refresh: "更新する", target: "全シーンにする" },
@@ -3113,13 +3123,13 @@ class Runner {
 
   // PLAN AND REMAINING WORK
   swapsFor(run, gens, checks) {
-    if (!run.check || this.checkDisabled || !this.app.store.data.llm.freeVram) return 0;
+    if (!(run.check || this.checkOnlyMode) || this.checkDisabled || !this.app.store.data.llm.freeVram) return 0;
     if (gens > 0) return this.vramFreed ? 2 : 1;
     return checks > 0 && !this.vramFreed ? 1 : 0;
   }
 
   remaining() {
-    const run = this.app.doc.run;
+    const run = { ...this.app.doc.run, check: this.app.doc.run.check || this.checkOnlyMode };
     let gens = 0, pending = 0;
     for (const p of this.plan) {
       if (!p.closed) gens += Math.max(0, p.total - p.done);
@@ -3205,6 +3215,79 @@ class Runner {
       if (Judge.verdict(img, run) === false && !run.keepRejected) this.app.images.dropFull(img);
       this.app.sceneChanged(scene.id);
       this.report();
+    }
+  }
+
+  /* あとから文章AIチェックだけをする（チェックをオフにして生成したあとに使う）。
+     チェックが済んだ画像（state: done）は飛ばし、まだのものと失敗したものだけを見る。画像は作らない */
+  async checkOnly(sceneIds) {
+    const app = this.app;
+    if (this.busy) throw Guide.fail(M.runBusy);
+    const doc = app.doc;
+    const scenes = sceneIds.map((id) => doc.scenes.find((s) => s.id === id)).filter(Boolean);
+    const todo = (s) => app.images.list(s.id).filter((i) => i.blob && i.check?.state !== "done");
+    const targets = scenes.filter((s) => todo(s).length);
+    const skipped = scenes.reduce((n, s) => n + app.images.list(s.id).filter((i) => i.check?.state === "done").length, 0);
+    if (!targets.length) {
+      app.notice(fmt(app.images.total ? M.checkOnlyNothing : M.checkOnlyNoImages, { skipped }), "warn");
+      return null;
+    }
+    this.ctl = new AbortController();
+    const signal = this.ctl.signal;
+    this.checkOnlyMode = true;
+    this.checkFails = 0;
+    this.checkDisabled = false;
+    this.doneUnits = 0;
+    this.plan = targets.map((s) => ({ id: s.id, total: 0, done: 0, closed: true }));
+    const started = Date.now();
+    let checked = 0;
+    app.runStateChanged(true);
+    try {
+      app.phase("idle", "");
+      app.status(M.runPreparing);
+      const llm = await Net.probe(`${LlmClient.norm(app.store.data.llm.url)}/models`);
+      if (llm !== "ok") throw Object.assign(Guide.fail(M.fix.checkOnlyNoLlm, "settingsLlm"), { who: "llm" });
+      for (const s of targets) {
+        for (const img of todo(s)) img.check = { state: "pending" };
+        app.sceneChanged(s.id);
+      }
+      this.report();
+      for (let si = 0; si < targets.length; si++) {
+        const scene = targets[si];
+        if (this.checkDisabled) break;
+        app.markRunning(scene.id);
+        const before = todo(scene).length;
+        await this.checkPending(doc, scene, signal, () => fmt(M.checkOnlyTitle, { i: si + 1, n: targets.length, title: scene.title || `#${doc.scenes.indexOf(scene) + 1}` }));
+        checked += before - todo(scene).length;
+      }
+      const run = doc.run;
+      const good = scenes.reduce((n, s) => n + Judge.counts(app.images.list(s.id), run).good, 0);
+      const lacking = scenes.filter((s) => Judge.lacking(app.images.list(s.id), run)).map((s) => `#${doc.scenes.indexOf(s) + 1}`);
+      app.phase("done", "");
+      app.progress(1);
+      app.notice(fmt(M.checkOnlyDone, { checked, skipped, good, time: formatDuration(Date.now() - started), lacking: lacking.join("・") || M.lacking }), lacking.length ? "warn" : "ok");
+      return { checked, skipped, good, lacking };
+    } catch (err) {
+      const why = Guide.explain(err, err?.who || "llm");
+      for (const s of targets) {
+        for (const img of app.images.list(s.id)) if (img.check?.state === "pending") img.check = undefined;
+        app.sceneChanged(s.id);
+      }
+      if (why.aborted) {
+        app.phase("stop", "");
+        app.notice(fmt(M.checkOnlyStopped, { checked }), "");
+      } else {
+        app.phase("error", "");
+        app.notice(why.text, "err", why.action);
+      }
+      return null;
+    } finally {
+      this.ctl = null;
+      this.plan = [];
+      this.checkOnlyMode = false;
+      app.markRunning(null);
+      app.updateEta(null);
+      app.runStateChanged(false);
     }
   }
 
@@ -3849,6 +3932,9 @@ class RightPanel {
         Form.check(r, "check", L.check, () => { sync(); changed(); }),
         h("p", { class: "note", text: L.checkNote }),
         checkBox,
+        h("div", { class: "check-only" },
+          h("button", { id: "btn-check-only", text: L.checkOnly, disabled: app.runner.busy, onclick: () => app.checkOnly() }),
+          h("p", { class: "note", text: L.checkOnlyNote })),
       ]),
       Form.section("memory", L.secMemory, [
         Form.check(r, "keepRejected", L.keepRejected, changed),
@@ -4809,7 +4895,7 @@ class App {
   runStateChanged(running) {
     $("btn-run").disabled = running;
     $("btn-stop").hidden = !running;
-    for (const b of document.querySelectorAll(".scene-run")) b.disabled = running;
+    for (const b of document.querySelectorAll(".scene-run, #btn-check-only")) b.disabled = running;
     if (!running) this.progress($("run-bar").style.width === "100%" ? 1 : 0);
   }
 
@@ -4951,6 +5037,10 @@ class App {
       this.notice(why.text, "err", why.action);
     }
     this.sceneChanged(sceneId);
+  }
+
+  checkOnly() {
+    return this.runner.checkOnly(this.doc.scenes.map((s) => s.id));
   }
 
   // RUN
