@@ -1166,6 +1166,10 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     insertLora: "LoRA",
     insertLoraNote: "選ぶと、直前に触った入力欄に <lora:…> を足します。",
     keepCurrent: "（いまの設定のまま）",
+    vaeAuto: "自動（モデルに合わせる）",
+    vaeAutoComfy: "自動（Checkpoint の VAE）",
+    vaeNone: "なし",
+    vaeTitle: "「いまの設定のまま」は画像AIで最後に使った VAE をそのまま使います。モデルを替えたときや、VAE のエラーが出たときは「自動」にしてください",
     notInList: "（一覧にない）",
     perScene: "1シーンの枚数",
     check: "生成した画像を文章AIでチェックする",
@@ -1473,6 +1477,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
       llmModel: "文章AIのモデルが見つかりません。「設定」→「文章AI」の「モデル」で、読み込んであるモデルを選び直してください。",
       llmTimeout: "文章AIからの応答が時間切れになりました。文章AIのアプリでモデルが読み込まれているか確かめてから、もう一度押してください。",
       imageTimeout: "画像AIからの応答が時間切れになりました。画像AIが動いているか確かめてから、もう一度押してください。",
+      vaeMismatch: "VAE がいまのモデルに合っていません。右の「画像の共通設定」→ VAE を「自動」にして、生成し直してください。",
       comfyMissing: "ComfyUI に無いモデル名が指定されています。右の「画像の共通設定」→「一覧を読み込む」を押して、Checkpoint・VAE・LoRA を選び直してください。",
       needBrief: "ざっくりした指示が空です。左の「② ストーリー」に書いてから押してください。",
       noScenes: "シーンがありません。左の「② ストーリー」で組み立てるか、「＋ シーンを追加」を押してください。",
@@ -2499,7 +2504,9 @@ class BaseImage {
       else set(key, () => { c[key] = base[key]; });
     }
     if (base.model) set("model", () => { c.model = this.match(base.model, res.models); });
-    if (base.vae && !USER_SETTINGS.autoValues.includes(base.vae)) set("vae", () => { c.vae = this.match(base.vae, res.vaes); });
+    // VAE は、画像AIの一覧に同じものがあるときだけ流し込む（モデルに合わない VAE を送ると画像AIが読み込みで止まるため）
+    const vae = base.vae && !USER_SETTINGS.autoValues.includes(base.vae) && res.vaes?.length ? this.match(base.vae, res.vaes) : "";
+    if (vae && res.vaes.includes(vae)) set("vae", () => { c.vae = vae; });
     const bs = base.settings || {};
     if (bs.sampler) set("sampler", () => { s.sampler = this.samplerFor(backendKind, bs.sampler, res.samplers); });
     if (bs.scheduler) set("scheduler", () => { s.scheduler = this.schedulerFor(backendKind, bs.scheduler, res.schedulers); });
@@ -2948,6 +2955,7 @@ class Guide {
     const msg = String(err?.message || err || "");
     if (llm && /image|vision|multimodal|image_url|mmproj/i.test(msg)) return { text: F.llmVision, action: "settingsLlm" };
     if (llm && /model/i.test(msg) && /not found|does not exist|no model|not loaded|404/i.test(msg)) return { text: F.llmModel, action: "settingsLlm" };
+    if (!llm && /vae/i.test(msg) && /size mismatch|state_dict|shape/i.test(msg)) return { text: `${F.vaeMismatch}\n${msg}`, action: "image:model" };
     if (!llm && /value_not_in_list|not in list|ckpt_name|lora_name|vae_name/i.test(msg)) return { text: F.comfyMissing, action: "image:model" };
     return { text: msg, action: llm ? "settingsLlm" : null };
   }
@@ -3657,6 +3665,13 @@ class RightPanel {
     return [...extra, ...(list || []).map((v) => [v, v])];
   }
 
+  // VAE は一覧を読み込んでいなくても「自動」を選べるようにする（合わない VAE を外す手段を常に残す）
+  vaeEntries(list) {
+    const named = (list || []).filter((v) => !USER_SETTINGS.autoValues.includes(v));
+    const auto = this.app.store.data.backend === "comfy" ? [["Automatic", L.vaeAutoComfy]] : [["Automatic", L.vaeAuto], ["None", L.vaeNone]];
+    return [["", L.keepCurrent], ...auto, ...named.map((v) => [v, v])];
+  }
+
   imageTab() {
     const app = this.app;
     const c = app.doc.common;
@@ -3702,7 +3717,7 @@ class RightPanel {
       Form.section("model", L.secModel, [
         msg,
         Form.prop(L.model, Form.select(c, "model", this.listEntries(res.models, [["", L.keepCurrent]]), () => this.changed(), { "data-key": "model", listed: !!res.models?.length })),
-        Form.prop(L.vae, Form.select(c, "vae", this.listEntries(res.vaes, [["", L.keepCurrent]]), () => this.changed(), { "data-key": "vae", listed: !!res.vaes?.length })),
+        Form.prop(L.vae, Form.select(c, "vae", this.vaeEntries(res.vaes), () => this.changed(), { "data-key": "vae", listed: !!res.vaes?.length }), { title: L.vaeTitle }),
         Form.prop(L.family, famSel, { title: L.familyTitle }),
         Form.prop(L.style, styleSel, { title: L.styleTitle }),
       ], [loadBtn]),
