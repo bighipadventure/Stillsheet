@@ -1051,7 +1051,7 @@ install()
       quality: "masterpiece, best quality, amazing quality, very aesthetic, absurdres",
       suffix: "",
       negative: "lowres, worst quality, low quality, bad anatomy, bad hands, extra fingers, missing fingers, fused fingers, extra arms, extra legs, deformed, disfigured, blurry, jpeg artifacts, text, watermark, signature",
-      model: "", vae: "", width: 832, height: 1216,
+      model: "", vae: "", textEncoder: "", width: 832, height: 1216,
       settings: { sampler: "Euler a", scheduler: "Automatic", steps: 28, cfg: 6, seed: -1, clipSkip: 2 },
     },
     run: { perScene: 30, check: true, threshold: 70, strictScene: true, matchThreshold: 70, autoExtra: true, keepRejected: true, target: "all" },
@@ -1169,7 +1169,10 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     vaeAuto: "自動（モデルに合わせる）",
     vaeAutoComfy: "自動（Checkpoint の VAE）",
     vaeNone: "なし",
-    vaeTitle: "「いまの設定のまま」は画像AIで最後に使った VAE をそのまま使います。モデルを替えたときや、VAE のエラーが出たときは「自動」にしてください",
+    textEncoder: "Text Encoder",
+    textEncoderNone: "なし（モデルに入っているもの）",
+    textEncoderTitle: "Forge Neo で Checkpoint と別に読み込む Text Encoder です。SDXL / Illustrious 系は「なし」。「いまの設定のまま」は Forge で最後に使ったものを使います（ほかのアプリで選んだものも残ります）",
+    vaeTitle: "「いまの設定のまま」は画像AIで最後に使った VAE をそのまま使います（ほかのアプリで選んだものも残ります）。「自動」は Checkpoint に入っている VAE を使い、Forge Neo では追加の VAE・Text Encoder を外します。VAE のエラーが出たときは「自動」にしてください",
     notInList: "（一覧にない）",
     perScene: "1シーンの枚数",
     check: "生成した画像を文章AIでチェックする",
@@ -1280,7 +1283,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     showPlay: "自動再生",
     showPause: "一時停止",
     exportAllGood: "ZIP に合格画像もすべて入れる",
-    baseKeys: { model: "Checkpoint", vae: "VAE", sampler: "サンプラー", scheduler: "スケジューラー", steps: "ステップ", cfg: "CFG", clipSkip: "Clip skip", size: "大きさ", negative: "ネガティブ", loras: "LoRA", quality: "品質タグ", seed: "シード" },
+    baseKeys: { model: "Checkpoint", vae: "VAE", textEncoder: "Text Encoder", sampler: "サンプラー", scheduler: "スケジューラー", steps: "ステップ", cfg: "CFG", clipSkip: "Clip skip", size: "大きさ", negative: "ネガティブ", loras: "LoRA", quality: "品質タグ", seed: "シード" },
     runNote: "{scenes}シーン × 最大{per}枚（計 最大{total}枚）・{check}",
     runNoteCheck: "チェックあり（全シーンを作ってからまとめて・{threshold}点で合格）",
     runNoteNoCheck: "チェックなし",
@@ -1477,7 +1480,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
       llmModel: "文章AIのモデルが見つかりません。「設定」→「文章AI」の「モデル」で、読み込んであるモデルを選び直してください。",
       llmTimeout: "文章AIからの応答が時間切れになりました。文章AIのアプリでモデルが読み込まれているか確かめてから、もう一度押してください。",
       imageTimeout: "画像AIからの応答が時間切れになりました。画像AIが動いているか確かめてから、もう一度押してください。",
-      vaeMismatch: "VAE がいまのモデルに合っていません。右の「画像の共通設定」→ VAE を「自動」にして、生成し直してください。",
+      vaeMismatch: "VAE（またはモデル）が合っていません。右の「画像の共通設定」で、VAE を「自動」にし、Checkpoint を「いまの設定のまま」ではなく使うモデルに選んでから生成し直してください（Stillmange の MOSS などで Forge に別のモデル・VAE が残っているときも、これで切り替わります）。",
       comfyMissing: "ComfyUI に無いモデル名が指定されています。右の「画像の共通設定」→「一覧を読み込む」を押して、Checkpoint・VAE・LoRA を選び直してください。",
       needBrief: "ざっくりした指示が空です。左の「② ストーリー」に書いてから押してください。",
       noScenes: "シーンがありません。左の「② ストーリー」で組み立てるか、「＋ シーンを追加」を押してください。",
@@ -1654,23 +1657,66 @@ class A1111Client {
     return Array.isArray(data) ? data.map((l) => l?.name).filter(Boolean) : [];
   }
 
+  /* Forge Neo は VAE・Text Encoder を sd_vae ではなく forge_additional_modules（ファイルの一覧）で持ち、
+     override_settings_restore_afterwards: false で送ると次の生成にも残る。
+     そのため Stillmange の MOSS など別のモデル用のものが選ばれたままだと、ここで送らなくてもそれで読み込もうとして止まる。
+     Forge Neo かどうか・VAE / Text Encoder の一覧とファイルの場所を調べて覚えておく。 */
+  forgeInfo() {
+    if (!this.forge) {
+      const safe = (path) => this.get(path).catch(() => null);
+      this.forge = Promise.all([safe("/sdapi/v1/options"), safe("/sdapi/v1/sd-vae"), safe("/sdapi/v1/sd-modules")]).then(([o, v, m]) => {
+        const vaeList = (Array.isArray(v) ? v : []).map((x) => ({ name: x.model_name, file: x.filename }));
+        const modList = (Array.isArray(m) ? m : []).map((x) => ({ name: x.model_name, file: x.filename }));
+        const neo = Array.isArray(o?.forge_additional_modules);
+        const all = modList.length ? modList : vaeList;
+        const vaeFiles = new Set(vaeList.map((x) => x.file));
+        const isVae = (x) => vaeFiles.has(x.file) || /[\\/](vae|vae-approx)[\\/]/i.test(x.file || "") || /(^|[_\-.])(vae|ae)([_\-.]|$)/i.test(x.name);
+        const vaes = neo ? all.filter(isVae) : vaeList;
+        const tes = neo ? all.filter((x) => !isVae(x)) : [];
+        return {
+          neo,
+          files: Object.fromEntries([...all, ...vaeList].map((x) => [x.name, x.file])),
+          vaes: vaes.map((x) => x.name),
+          textEncoders: tes.map((x) => x.name),
+          isVaeFile: (f) => vaeFiles.has(f) || vaes.some((x) => x.file === f) || /[\\/](vae|vae-approx)[\\/]/i.test(f),
+        };
+      });
+    }
+    return this.forge;
+  }
+
+  // 送る VAE / Text Encoder の指定。「いまの設定のまま」（空）のものは、Forge Neo で選ばれているものを引き継ぐ
+  async moduleOverride(vae, te) {
+    if (!vae && !te) return {};
+    const forge = await this.forgeInfo();
+    if (!forge.neo) return vae ? { sd_vae: vae } : {};
+    let current = [];
+    if (!vae || !te) current = ((await this.get("/sdapi/v1/options").catch(() => ({})))?.forge_additional_modules || []).map(String);
+    const fileOf = (name) => forge.files[name];
+    if (vae && !USER_SETTINGS.autoValues.includes(vae) && !fileOf(vae)) return { sd_vae: vae };
+    const vaePart = !vae ? current.filter(forge.isVaeFile) : USER_SETTINGS.autoValues.includes(vae) ? [] : [fileOf(vae)];
+    const tePart = !te ? current.filter((f) => !forge.isVaeFile(f)) : USER_SETTINGS.autoValues.includes(te) || !fileOf(te) ? [] : [fileOf(te)];
+    return { forge_additional_modules: [...tePart, ...vaePart] };
+  }
+
   async resources() {
+    this.forge = null;
     const safe = (path, map) => this.get(path).then(map).catch(() => []);
-    const [models, loras, samplers, schedulers, vaes] = await Promise.all([
+    const [models, loras, samplers, schedulers, forge] = await Promise.all([
       safe("/sdapi/v1/sd-models", (d) => d.map((m) => m.title)),
       this.loraList().catch(() => []),
       safe("/sdapi/v1/samplers", (d) => d.map((s) => s.name)),
       safe("/sdapi/v1/schedulers", (d) => d.map((s) => s.label || s.name)),
-      safe("/sdapi/v1/sd-vae", (d) => d.map((v) => v.model_name)),
+      this.forgeInfo(),
     ]);
-    return { models, loras, samplers, schedulers, vaes: vaes.length ? ["Automatic", "None", ...vaes] : [] };
+    return { models, loras, samplers, schedulers, vaes: forge.vaes.length || forge.neo ? ["Automatic", "None", ...forge.vaes] : [], textEncoders: forge.textEncoders, forgeNeo: forge.neo };
   }
 
   async generate(spec, { signal, onProgress }) {
     const s = spec.settings;
     const override = { CLIP_stop_at_last_layers: s.clipSkip };
     if (spec.model) override.sd_model_checkpoint = spec.model;
-    if (spec.vae) override.sd_vae = spec.vae;
+    Object.assign(override, await this.moduleOverride(spec.vae, spec.textEncoder));
     const payload = {
       prompt: spec.prompt, negative_prompt: spec.negative,
       seed: s.seed, steps: s.steps, cfg_scale: s.cfg, sampler_name: s.sampler, width: spec.size.width, height: spec.size.height,
@@ -2356,7 +2402,7 @@ class MetaReader {
 
 class PromptParser {
   static empty() {
-    return { format: "none", prompt: "", negative: "", seed: null, model: "", vae: "", loras: [], settings: {}, width: null, height: null, raw: "" };
+    return { format: "none", prompt: "", negative: "", seed: null, model: "", modelHash: "", vae: "", modules: [], loras: [], settings: {}, width: null, height: null, raw: "" };
   }
 
   static parseA1111(raw) {
@@ -2385,7 +2431,10 @@ class PromptParser {
     meta.negative = negative.join("\n").trim();
     meta.seed = /^-?\d+$/.test(extra.Seed || "") ? Number(extra.Seed) : null;
     meta.model = extra.Model || "";
+    meta.modelHash = extra["Model hash"] || "";
     meta.vae = extra.VAE || "";
+    // Forge Neo は追加の VAE・Text Encoder を「Module 1: 名前, Module 2: 名前」で書く
+    meta.modules = Object.keys(extra).filter((k) => /^Module \d+$/.test(k)).sort((a, b) => parseInt(a.slice(7)) - parseInt(b.slice(7))).map((k) => extra[k]).filter(Boolean);
     if (extra.Size) [meta.width, meta.height] = extra.Size.split("x").map(Number);
     const s = meta.settings;
     let sampler = extra.Sampler || "";
@@ -2455,7 +2504,7 @@ class BaseImage {
     const { quality, rest } = this.split(meta.prompt);
     return {
       name: file.name, thumb, format: meta.format, raw: meta.raw || "", fullPrompt: meta.prompt, quality, prompt: rest,
-      negative: meta.negative, seed: meta.seed, model: meta.model, vae: meta.vae, loras: meta.loras, settings: meta.settings,
+      negative: meta.negative, seed: meta.seed, model: meta.model, modelHash: meta.modelHash || "", vae: meta.vae, modules: meta.modules || [], loras: meta.loras, settings: meta.settings,
       width: meta.width, height: meta.height, useSeed: false,
     };
   }
@@ -2465,6 +2514,14 @@ class BaseImage {
     const quality = parts.filter((t) => USER_SETTINGS.qualityTags.test(t));
     const rest = parts.filter((t) => !USER_SETTINGS.qualityTags.test(t));
     return { quality: quality.join(", "), rest: rest.join(", ") };
+  }
+
+  // モデルは名前で探し、見つからなければ生成情報のハッシュ（「name.safetensors [abcd1234]」の [] の中）で探す
+  static matchModel(name, hash, list) {
+    const hit = this.match(name, list);
+    if (!list?.length || list.includes(hit) || !hash) return hit;
+    const h = String(hash).toLowerCase();
+    return list.find((x) => (x.match(/\[([0-9a-f]+)\]\s*$/i)?.[1] || "").toLowerCase().startsWith(h.slice(0, 8))) || hit;
   }
 
   static match(name, list) {
@@ -2503,10 +2560,20 @@ class BaseImage {
       if (keepText && String(c[key] || "").trim()) kept.push(L.baseKeys[key]);
       else set(key, () => { c[key] = base[key]; });
     }
-    if (base.model) set("model", () => { c.model = this.match(base.model, res.models); });
-    // VAE は、画像AIの一覧に同じものがあるときだけ流し込む（モデルに合わない VAE を送ると画像AIが読み込みで止まるため）
-    const vae = base.vae && !USER_SETTINGS.autoValues.includes(base.vae) && res.vaes?.length ? this.match(base.vae, res.vaes) : "";
-    if (vae && res.vaes.includes(vae)) set("vae", () => { c.vae = vae; });
+    if (base.model) set("model", () => { c.model = this.matchModel(base.model, base.modelHash, res.models); });
+    // VAE・Text Encoder は、画像AIの一覧に同じものがあるときだけ流し込む（合わないものを送ると画像AIが読み込みで止まるため）。
+    // SD WebUI の画像で一覧を読み込めているときは、書かれていなければ「自動」「なし」にして、ほかのアプリで選んだものが残らないようにする
+    const named = [base.vae, ...(base.modules || [])].filter((n) => n && !USER_SETTINGS.autoValues.includes(n));
+    const find = (list) => (list?.length ? named.map((n) => this.match(n, list)).find((v) => list.includes(v)) : "") || "";
+    const infotext = base.format === "a1111";
+    if (res.vaes?.length) {
+      const vae = find(res.vaes.filter((v) => !USER_SETTINGS.autoValues.includes(v)));
+      if (vae || infotext) set("vae", () => { c.vae = vae || "Automatic"; });
+    }
+    if (res.textEncoders?.length) {
+      const te = find(res.textEncoders);
+      if (te || infotext) set("textEncoder", () => { c.textEncoder = te || "None"; });
+    }
     const bs = base.settings || {};
     if (bs.sampler) set("sampler", () => { s.sampler = this.samplerFor(backendKind, bs.sampler, res.samplers); });
     if (bs.scheduler) set("scheduler", () => { s.scheduler = this.schedulerFor(backendKind, bs.scheduler, res.schedulers); });
@@ -3033,12 +3100,12 @@ class Runner {
     const c = doc.common;
     const settings = { ...c.settings, seed: this.seedFor(Runner.seedBase(doc, scene), index) };
     const size = Runner.sizeOf(doc, scene);
-    if (backend.keepsLoraTags) return { prompt, negative, loras: [], model: c.model, vae: c.vae, size, settings, shownPrompt: prompt };
+    if (backend.keepsLoraTags) return { prompt, negative, loras: [], model: c.model, vae: c.vae, textEncoder: c.textEncoder || "", size, settings, shownPrompt: prompt };
     const pos = LoraTags.extract(prompt);
     const neg = LoraTags.extract(negative);
     const available = this.app.res.loras || [];
     const loras = pos.loras.map((l) => ({ ...l, name: LoraTags.resolve(l.name, available) }));
-    return { prompt: pos.text, negative: neg.text, loras, model: c.model, vae: c.vae, size, settings, shownPrompt: prompt };
+    return { prompt: pos.text, negative: neg.text, loras, model: c.model, vae: c.vae, textEncoder: c.textEncoder || "", size, settings, shownPrompt: prompt };
   }
 
   // PLAN AND REMAINING WORK
@@ -3718,6 +3785,9 @@ class RightPanel {
         msg,
         Form.prop(L.model, Form.select(c, "model", this.listEntries(res.models, [["", L.keepCurrent]]), () => this.changed(), { "data-key": "model", listed: !!res.models?.length })),
         Form.prop(L.vae, Form.select(c, "vae", this.vaeEntries(res.vaes), () => this.changed(), { "data-key": "vae", listed: !!res.vaes?.length }), { title: L.vaeTitle }),
+        res.forgeNeo || res.textEncoders?.length || c.textEncoder
+          ? Form.prop(L.textEncoder, Form.select(c, "textEncoder", this.listEntries(res.textEncoders, [["", L.keepCurrent], ["None", L.textEncoderNone]]), () => this.changed(), { "data-key": "textEncoder", listed: !!res.textEncoders?.length }), { title: L.textEncoderTitle })
+          : null,
         Form.prop(L.family, famSel, { title: L.familyTitle }),
         Form.prop(L.style, styleSel, { title: L.styleTitle }),
       ], [loadBtn]),
@@ -5024,6 +5094,7 @@ class App {
   async loadBase(file) {
     try {
       this.doc.base = await BaseImage.read(file);
+      if (!this.res.models?.length) await this.loadResources();
       const used = this.applyBase({ keepText: true });
       if (!this.doc.scenes.length && this.doc.base.prompt) this.addSceneFromBase(true);
       this.left.render();
