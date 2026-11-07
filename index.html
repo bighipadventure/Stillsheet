@@ -220,6 +220,9 @@ body.resizing * { user-select: none; }
   .splitter { display: none; }
   .side-scroll, .insp-scroll, .center-scroll { overflow: visible; }
   .pills .pill-app { display: none; }
+  /* 1列表示ではページ全体がスクロールするので、進み具合の帯を画面の上に固定する（高さは --status-h で下の中身をずらす） */
+  body { padding-top: var(--status-h, 0px); }
+  .status-panel { position: fixed; top: 0; left: 0; right: 0; z-index: 40; box-shadow: 0 2px 8px rgb(0 0 0 / .12); }
 }
 
 /* ===== STATUS PANEL (PHASE, PROGRESS AT THE TOP RIGHT, ETA) ===== */
@@ -4631,6 +4634,9 @@ class App {
     this.bag = new Listeners();
     this.numbers = NumberControl.watch(document.body);
     this.grow = AutoGrow.watch(document.body, [...document.querySelectorAll(".col-left, .col-center, .col-right")], this.bag);
+    const statusPanel = document.querySelector(".status-panel");
+    this.statusSize = new ResizeObserver(() => document.body.style.setProperty("--status-h", `${statusPanel.offsetHeight}px`));
+    this.statusSize.observe(statusPanel);
     this.left = new LeftPanel(this);
     this.right = new RightPanel(this);
     this.board = new SceneBoard(this);
@@ -4661,6 +4667,7 @@ class App {
     clearInterval(this.etaTimer);
     this.numbers.disconnect();
     this.grow.disconnect();
+    this.statusSize.disconnect();
     for (const part of [this.bag, this.left, this.right, this.board, this.setStrip, this.viewer, this.show, this.settings]) part.destroy();
     this.images.clearAll();
   }
