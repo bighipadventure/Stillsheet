@@ -75,7 +75,7 @@
     color-scheme: dark;
   }
 }
-*, *::before, *::after { box-sizing: inherit; }
+*, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; }
 body { margin: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 13px; line-height: 1.5; }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -276,6 +276,7 @@ body.resizing * { user-select: none; }
 @container (max-width: 760px) {
   .scene-body { grid-template-columns: 1fr; }
 }
+.scene-run { margin-top: auto; width: 100%; }
 .cast-checks { display: flex; flex-wrap: wrap; gap: 4px 12px; }
 .scene-extra { border-top: 1px dashed var(--line); padding-top: 4px; }
 .scene-extra > summary { flex-wrap: wrap; }
@@ -421,7 +422,7 @@ dialog#show[open] { display: flex; flex-direction: column; }
   <label class="check help-toggle" title="オフにすると、画面の説明文を隠します（使い慣れた人向け）"><input type="checkbox" id="help-toggle" checked> 説明</label>
   <button class="help-btn" id="btn-show" title="各シーンの1枚を順番に全画面で見ます">▶ 紙芝居</button>
   <button class="help-btn" id="btn-help">？ ツールの使い方</button>
-  <input type="file" id="file-open" accept=".json,application/json,image/png,image/jpeg,image/webp" hidden>
+  <input type="file" id="file-open" accept=".json,application/json,.zip,application/zip,image/png,image/jpeg,image/webp" hidden>
   <input type="file" id="file-base" accept="image/png,image/jpeg,image/webp" hidden>
 </header>
 <div class="menu-list" id="save-menu" hidden></div>
@@ -519,6 +520,7 @@ const USER_SETTINGS = {
   combinedScheduler: /\s(Karras|Exponential|SGM Uniform)$/,
   projectVersion: 1,
   fileNamePrefix: "stillsheet_",
+  zipProjectFile: "stillsheet_project.json",
   probeTimeoutMs: 2500,
   listTimeoutMs: 8000,
   pollIntervalMs: 1000,
@@ -1184,8 +1186,10 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     freeVram: "チェックの前に画像AIのモデルを VRAM から外す",
     saveAll: "全部を保存",
     saveAllNote: "ストーリー・シーン・登場人物・場所・画像の設定・ベース画像すべて",
-    saveWithImages: "画像も含めて保存",
-    saveWithImagesNote: "「全部を保存」の中身に加えて、生成した画像・点数・合否・★の選択も入れます。開くと画像まで元どおりに戻ります（ファイルは大きくなります）",
+    saveWithImages: "画像も含めて保存（ZIP）",
+    saveWithImagesNote: "「全部を保存」の中身と、画像ファイルそのものを1つの ZIP にまとめます。採用した画像は「採用」フォルダ、生成した全画像は「画像」フォルダに入ります。「開く」でこの ZIP を選ぶと、点数・合否・★の選択まで元どおりに戻ります",
+    zipImagesDir: "画像",
+    zipPickedDir: "採用",
     saveSituation: "シチュを保存",
     saveSituationNote: "ストーリー・シーン・場所だけ（登場人物と画像の設定は含めない）。別のキャラで同じシチュを作るとき用",
     saveCast: "キャストを保存",
@@ -1244,7 +1248,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     duplicate: "複製",
     statLine: "{total}枚・合格 <b>{good}</b>・不合格 {ng}・未チェック {pending}",
     statPicked: "・採用 #{n}",
-    noImages: "まだ画像がありません。\n左下の「▶ 生成を始める」か、このシーンの「▶ このシーンを生成」で作ります。\nできた候補はここにサムネイルで並び、採用した1枚がその下に大きく出ます。",
+    noImages: "まだ画像がありません。\n画面左下の「▶ 生成を始める」か、入力欄の下にある「▶ このシーンを生成」で作ります。\nできた候補はここにサムネイルで並び、採用した1枚がその下に大きく出ます。",
     pickNone: "採用できる画像がまだありません",
     pickCap: "採用中: {no}枚目・{score}・{mode}",
     pickOpen: "クリックで詳細を開く",
@@ -1347,13 +1351,13 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
       lead: "作業の状態はブラウザに保存しません。ページを閉じたり再読み込みしたりすると消えるので、続きを作るときは「保存 ▾」で JSON に保存してください（画面の幅や接続先などの設定だけはブラウザに残ります）。",
       kinds: [
         ["全部を保存", "ストーリー・シーン・登場人物・場所・画像の設定・生成とチェックの設定・ベース画像", "まるごと入れ替わります"],
-        ["画像も含めて保存", "「全部を保存」の中身＋生成した画像・点数・合否・★の選択", "まるごと入れ替わり、画像まで元どおりに戻ります"],
+        ["画像も含めて保存（ZIP）", "「全部を保存」の中身＋画像ファイル（採用した画像は「採用」フォルダ、全画像は「画像」フォルダ）＋点数・合否・★の選択", "「開く」で ZIP を選ぶと、まるごと入れ替わり、画像まで元どおりに戻ります"],
         ["シチュを保存", "ストーリー・シーン・場所・生成とチェックの設定（登場人物と画像の設定は含めない）", "いまの登場人物と画像の設定のまま、シーンだけが入れ替わります"],
         ["キャストを保存", "登場人物だけ", "シーンはそのままで、A・B… の中身だけが入れ替わります"],
       ],
       head: ["保存", "中身", "開いたとき"],
       images: "生成した画像",
-      imagesNote: "「全部を保存」「シチュを保存」「キャストを保存」の JSON には画像は入りません。続きから作業したいときは「画像も含めて保存」を使ってください。完成したセットは「セット」欄の「ダウンロード（ZIP）」か「Prompt Reel に投稿」で残せます。元の画像は画像AIの出力フォルダにもすべて保存されています。",
+      imagesNote: "「全部を保存」「シチュを保存」「キャストを保存」の JSON には画像は入りません。続きから作業したいときは「画像も含めて保存（ZIP）」を使ってください。完成したセットは「セット」欄の「ダウンロード（ZIP）」か「Prompt Reel に投稿」で残せます。元の画像は画像AIの出力フォルダにもすべて保存されています。",
       zip: "ZIP の中身: 各シーンの1枚（01_タイトル.png…、生成情報入り）・story.txt（タイトルとナレーション）・stillsheet.json（全部を保存した JSON）。「ZIP に合格画像もすべて入れる」をオンにすると good/ にも入ります。",
       reel: "Prompt Reel に投稿: 各シーンの1枚をシーンの順に、1枚目を □1、2枚目からを差分として投稿画面に渡します。タイトルとメモ（あらすじ・ナレーション）は空欄のときだけ入ります。",
     },
@@ -1427,8 +1431,9 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     savedProject: "保存しました。",
     loadedProject: "読み込みました（{n} シーン）。画像は入っていないファイルです。",
     loadedProjectImages: "読み込みました（{n} シーン・画像 {m} 枚）。",
-    savingImages: "画像を JSON にまとめています（{k}/{m}枚）…",
-    savedProjectImages: "画像 {n} 枚を含めて保存しました。",
+    savingImages: "画像を ZIP にまとめています（{k}/{m}枚）…",
+    zipNoProject: "この ZIP には Stillsheet のプロジェクト（stillsheet_project.json）が入っていません。「画像も含めて保存（ZIP）」で保存した ZIP を選んでください。",
+    savedProjectImages: "画像 {n} 枚（採用 {p} 枚）を含めて ZIP で保存しました。",
     loadFailed: "ファイルを読み込めませんでした。Stillsheet で保存した JSON か、PNG 画像を選んでください。",
     notProject: "Stillsheet の JSON ではありません。「保存 ▾」で保存したファイルを選んでください。",
     loadDiscard: "いまの画像（{n} 枚）は消えます。読み込みますか？",
@@ -1545,15 +1550,6 @@ function setMsg(el, text, kind = "") {
 function fillSelect(select, entries, value) {
   select.replaceChildren(...entries.map(([v, label]) => new Option(label, v)));
   if (value !== undefined && entries.some(([v]) => String(v) === String(value))) select.value = String(value);
-}
-
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
 }
 
 function dataUrlToBlob(dataUrl) {
@@ -2170,6 +2166,43 @@ class ZipWriter {
     [[0, 0x06054b50, 4], [4, 0, 2], [6, 0, 2], [8, files.length, 2], [10, files.length, 2], [12, size, 4], [16, offset, 4], [20, 0, 2]]
       .forEach(([o, v, n]) => (n === 4 ? end.setUint32(o, v, true) : end.setUint16(o, v, true)));
     return new Blob([...parts, ...central, end], { type: "application/zip" });
+  }
+}
+
+// ===== ZIP READER (STORED / DEFLATE) =====
+class ZipReader {
+  static isZip(bytes) {
+    return bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
+  }
+
+  static async read(blob) {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const view = new DataView(bytes.buffer);
+    let end = -1;
+    for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+      if (view.getUint32(i, true) === 0x06054b50) { end = i; break; }
+    }
+    if (end < 0) throw new Error("zip: no end record");
+    const count = view.getUint16(end + 10, true);
+    let at = view.getUint32(end + 16, true);
+    const dec = new TextDecoder();
+    const files = new Map();
+    for (let n = 0; n < count; n++) {
+      if (view.getUint32(at, true) !== 0x02014b50) throw new Error("zip: bad directory");
+      const method = view.getUint16(at + 10, true);
+      const size = view.getUint32(at + 20, true);
+      const nameLen = view.getUint16(at + 28, true);
+      const skip = nameLen + view.getUint16(at + 30, true) + view.getUint16(at + 32, true);
+      const local = view.getUint32(at + 42, true);
+      const name = dec.decode(bytes.subarray(at + 46, at + 46 + nameLen));
+      at += 46 + skip;
+      if (name.endsWith("/")) continue;
+      const start = local + 30 + view.getUint16(local + 26, true) + view.getUint16(local + 28, true);
+      const raw = bytes.subarray(start, start + size);
+      if (method === 0) files.set(name, raw);
+      else if (method === 8) files.set(name, new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()));
+    }
+    return files;
   }
 }
 
@@ -3830,7 +3863,6 @@ class SceneBoard {
         h("span", { class: "scene-no", text: String(index + 1) }),
         Form.text(scene, "title", () => { app.docChanged(false); app.setStrip.render(); }, { class: "title", placeholder: L.sceneTitle }),
         stat,
-        h("button", { class: "mini primary scene-run", text: L.runScene, disabled: app.runner.busy, onclick: () => app.run([scene.id]) }),
         h("button", { class: "mini quiet", text: L.up, title: L.upTitle, onclick: () => move(-1), disabled: index === 0 }),
         h("button", { class: "mini quiet", text: L.down, title: L.downTitle, onclick: () => move(1), disabled: index === doc.scenes.length - 1 }),
         h("button", { class: "mini quiet", text: L.duplicate, onclick: () => app.duplicateScene(scene) }),
@@ -3845,7 +3877,8 @@ class SceneBoard {
             Form.field(L.sceneCountTag, countIn)),
           h("div", { class: "field" }, h("div", { class: "row", style: "justify-content:space-between" }, h("span", { text: L.scenePrompt }), rewrite), promptIn),
           this.extraSection(scene, changed),
-          h("details", {}, h("summary", { text: L.previewPrompt }), preview)),
+          h("details", {}, h("summary", { text: L.previewPrompt }), preview),
+          h("button", { class: "primary scene-run", text: L.runScene, disabled: app.runner.busy, onclick: () => app.run([scene.id]) })),
         media));
     this.cards.set(scene.id, { el, stat, media, preview, promptIn });
     this.updatePreview(scene.id);
@@ -4850,33 +4883,53 @@ class App {
   }
 
   async saveProjectWithImages() {
-    const all = [...this.images.byScene.entries()].filter(([id]) => this.doc.scenes.some((sc) => sc.id === id));
-    const m = all.reduce((n, [, list]) => n + list.length, 0);
-    const images = {};
-    let k = 0;
-    for (const [sceneId, list] of all) {
-      images[sceneId] = [];
-      for (const img of list) {
+    const pad = (n) => String(n).padStart(2, "0");
+    const extOf = (blob) => ({ "image/jpeg": "jpg", "image/webp": "webp" })[blob.type] || "png";
+    const scenes = this.doc.scenes;
+    const m = scenes.reduce((n, sc) => n + this.images.list(sc.id).length, 0);
+    const files = [], images = {};
+    let k = 0, p = 0;
+    for (let i = 0; i < scenes.length; i++) {
+      const scene = scenes[i];
+      const stem = `${pad(i + 1)}_${safeName(scene.title) || "scene"}`;
+      const list = this.images.list(scene.id);
+      images[scene.id] = [];
+      for (let j = 0; j < list.length; j++) {
+        const img = list[j];
         this.status(fmt(M.savingImages, { k: ++k, m }));
         const blob = img.blob || await (await fetch(img.thumb)).blob();
+        const score = img.check?.state === "done" ? `_${img.check.score}点` : "";
+        const path = `${L.zipImagesDir}/${stem}/${pad(j + 1)}${score}_${img.seed}.${extOf(blob)}`;
+        files.push({ path, data: new Uint8Array(await blob.arrayBuffer()) });
         const { id, seed, info, prompt, negative, width, height, settings, check, manual, createdAt } = img;
-        images[sceneId].push({ id, data: await blobToDataUrl(blob), full: !!img.blob, seed, info, prompt, negative, width, height, settings, check, manual, createdAt });
+        images[scene.id].push({ id, file: path, full: !!img.blob, seed, info, prompt, negative, width, height, settings, check, manual, createdAt });
       }
+      const pick = this.pickOf(scene.id);
+      if (pick?.blob) { files.push({ path: `${L.zipPickedDir}/${stem}.png`, data: await this.pngBytes(pick) }); p++; }
     }
     const data = { ...Doc.serialize(this.doc), images, picks: Object.fromEntries(this.picks) };
-    downloadBlob(new Blob([JSON.stringify(data)], { type: "application/json" }), `${USER_SETTINGS.fileNamePrefix}${safeName(this.doc.title) || "project"}_images_${timestamp()}.json`);
+    files.unshift({ path: USER_SETTINGS.zipProjectFile, data: JSON.stringify(data, null, 2) }, { path: "story.txt", data: this.storyText() });
+    downloadBlob(ZipWriter.build(files), `${USER_SETTINGS.fileNamePrefix}${safeName(this.doc.title) || "project"}_images_${timestamp()}.zip`);
     this.dirty = false;
-    this.notice(fmt(M.savedProjectImages, { n: m }), "ok");
+    this.status("");
+    this.notice(fmt(M.savedProjectImages, { n: m, p }), "ok");
   }
 
-  async restoreImages(obj) {
+  async restoreImages(obj, zipFiles) {
     const saved = obj.images && typeof obj.images === "object" ? obj.images : {};
+    const mimeOf = (path) => (/\.jpe?g$/i.test(path) ? "image/jpeg" : /\.webp$/i.test(path) ? "image/webp" : "image/png");
+    const blobOf = (it) => {
+      if (typeof it?.data === "string" && it.data.startsWith("data:image/")) return dataUrlToBlob(it.data);
+      const bytes = typeof it?.file === "string" && zipFiles?.get(it.file);
+      return bytes ? new Blob([bytes], { type: mimeOf(it.file) }) : null;
+    };
     let m = 0;
     for (const scene of this.doc.scenes) {
       for (const it of Array.isArray(saved[scene.id]) ? saved[scene.id] : []) {
-        if (typeof it?.data !== "string" || !it.data.startsWith("data:image/")) continue;
-        const { data, full, ...fields } = it;
-        const img = await this.images.add(scene.id, { ...fields, blob: dataUrlToBlob(data) });
+        const blob = blobOf(it);
+        if (!blob) continue;
+        const { data, file, full, ...fields } = it;
+        const img = await this.images.add(scene.id, { ...fields, blob });
         if (!full) this.images.dropFull(img);
         m++;
       }
@@ -4888,14 +4941,14 @@ class App {
     return m;
   }
 
-  async openProject(file) {
+  async openProject(file, given, zipFiles) {
     try {
-      const obj = await readJsonFile(file);
+      const obj = given || await readJsonFile(file);
       if (!Doc.isProject(obj) || obj.format !== USER_SETTINGS.projectFormat) throw Guide.fail(M.notProject);
       const n = this.imageCount();
       if (n && !confirm(fmt(M.loadDiscard, { n }))) return;
       this.replaceDoc(Doc.normalize(obj));
-      const m = await this.restoreImages(obj);
+      const m = await this.restoreImages(obj, zipFiles);
       this.notice(m ? fmt(M.loadedProjectImages, { n: this.doc.scenes.length, m }) : fmt(M.loadedProject, { n: this.doc.scenes.length }), "ok");
     } catch (err) {
       this.notice(err instanceof UserError ? err.message : M.loadFailed, "err");
@@ -4904,6 +4957,7 @@ class App {
 
   async openFile(file) {
     if (/^image\//.test(file.type) || /\.(png|jpe?g|webp)$/i.test(file.name)) { await this.loadBase(file); return; }
+    if (/\.zip$/i.test(file.name) || ZipReader.isZip(new Uint8Array(await file.slice(0, 4).arrayBuffer()))) return this.openZip(file);
     let obj;
     try {
       obj = await readJsonFile(file);
@@ -4914,6 +4968,20 @@ class App {
     if (obj?.format === USER_SETTINGS.situationFormat) return this.openSituation(obj);
     if (obj?.format === USER_SETTINGS.castFormat) return this.swapCastFrom(obj);
     return this.openProject(file);
+  }
+
+  async openZip(file) {
+    let files, obj;
+    try {
+      files = await ZipReader.read(file);
+      const name = files.has(USER_SETTINGS.zipProjectFile) ? USER_SETTINGS.zipProjectFile : [...files.keys()].find((n) => /\.json$/i.test(n));
+      obj = name ? JSON.parse(new TextDecoder().decode(files.get(name))) : null;
+    } catch {
+      this.notice(M.loadFailed, "err");
+      return;
+    }
+    if (!obj || obj.format !== USER_SETTINGS.projectFormat) { this.notice(M.zipNoProject, "err"); return; }
+    return this.openProject(file, obj, files);
   }
 
   saveSituation() {
