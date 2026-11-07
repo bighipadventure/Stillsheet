@@ -1051,7 +1051,7 @@ install()
       quality: "masterpiece, best quality, amazing quality, very aesthetic, absurdres",
       suffix: "",
       negative: "lowres, worst quality, low quality, bad anatomy, bad hands, extra fingers, missing fingers, fused fingers, extra arms, extra legs, deformed, disfigured, blurry, jpeg artifacts, text, watermark, signature",
-      model: "", vae: "", textEncoder: "", width: 832, height: 1216,
+      model: "", vae: "Automatic", textEncoder: "Automatic", width: 832, height: 1216,
       settings: { sampler: "Euler a", scheduler: "Automatic", steps: 28, cfg: 6, seed: -1, clipSkip: 2 },
     },
     run: { perScene: 30, check: true, threshold: 70, strictScene: true, matchThreshold: 70, autoExtra: true, keepRejected: true, target: "all" },
@@ -1164,15 +1164,14 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     addAtAfter: "シーン {n} のあとに",
     thumbHint: "クリックで採用（★）・ダブルクリックで詳細",
     insertLora: "LoRA",
-    insertLoraNote: "選ぶと、直前に触った入力欄に <lora:…> を足します。",
+    insertLoraNote: "選ぶと「末尾」に <lora:名前:1> を足し、全シーンに効きます。強さは「末尾」の数字を直してください。",
     keepCurrent: "（いまの設定のまま）",
     vaeAuto: "自動（モデルに合わせる）",
     vaeAutoComfy: "自動（Checkpoint の VAE）",
     vaeNone: "なし",
     textEncoder: "Text Encoder",
-    textEncoderNone: "なし（モデルに入っているもの）",
-    textEncoderTitle: "Forge Neo で Checkpoint と別に読み込む Text Encoder です。SDXL / Illustrious 系は「なし」。「いまの設定のまま」は Forge で最後に使ったものを使います（ほかのアプリで選んだものも残ります）",
-    vaeTitle: "「いまの設定のまま」は画像AIで最後に使った VAE をそのまま使います（ほかのアプリで選んだものも残ります）。「自動」は Checkpoint に入っている VAE を使い、Forge Neo では追加の VAE・Text Encoder を外します。VAE のエラーが出たときは「自動」にしてください",
+    textEncoderTitle: "Forge Neo で Checkpoint と別に読み込む Text Encoder です。ふだんは「自動」（Checkpoint に入っているものを使う。SDXL / Illustrious 系はこれ）。Flux など別に必要なモデルのときだけ選びます",
+    vaeTitle: "ふだんは「自動」（Checkpoint に入っている VAE を使う）。毎回指定して送るので、ほかのアプリで Forge に選んだ VAE が残っていても影響しません",
     notInList: "（一覧にない）",
     perScene: "1シーンの枚数",
     check: "生成した画像を文章AIでチェックする",
@@ -1438,6 +1437,8 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     savedProject: "保存しました。",
     loadedProject: "読み込みました（{n} シーン）。画像は入っていないファイルです。",
     loadedProjectImages: "読み込みました（{n} シーン・画像 {m} 枚）。",
+    loraAdded: "LoRA「{name}」を「末尾」に足しました。",
+    loraAlready: "LoRA「{name}」は「末尾」にもう入っています。",
     savingImages: "画像を ZIP にまとめています（{k}/{m}枚）…",
     zipNoProject: "この ZIP には Stillsheet のプロジェクト（stillsheet_project.json）が入っていません。「画像も含めて保存（ZIP）」で保存した ZIP を選んでください。",
     savedProjectImages: "画像 {n} 枚（採用 {p} 枚）を含めて ZIP で保存しました。",
@@ -1480,7 +1481,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
       llmModel: "文章AIのモデルが見つかりません。「設定」→「文章AI」の「モデル」で、読み込んであるモデルを選び直してください。",
       llmTimeout: "文章AIからの応答が時間切れになりました。文章AIのアプリでモデルが読み込まれているか確かめてから、もう一度押してください。",
       imageTimeout: "画像AIからの応答が時間切れになりました。画像AIが動いているか確かめてから、もう一度押してください。",
-      vaeMismatch: "VAE（またはモデル）が合っていません。右の「画像の共通設定」で、VAE を「自動」にし、Checkpoint を「いまの設定のまま」ではなく使うモデルに選んでから生成し直してください（Stillmange の MOSS などで Forge に別のモデル・VAE が残っているときも、これで切り替わります）。",
+      vaeMismatch: "VAE・Text Encoder とモデルが合っていません。右の「画像の共通設定」で、Checkpoint を「いまの設定のまま」ではなく使うモデルに選び、VAE・Text Encoder を「自動」にしてから生成し直してください（Stillmange の MOSS などで Forge に別のモデルが残っているときも、これで切り替わります）。",
       comfyMissing: "ComfyUI に無いモデル名が指定されています。右の「画像の共通設定」→「一覧を読み込む」を押して、Checkpoint・VAE・LoRA を選び直してください。",
       needBrief: "ざっくりした指示が空です。左の「② ストーリー」に書いてから押してください。",
       noScenes: "シーンがありません。左の「② ストーリー」で組み立てるか、「＋ シーンを追加」を押してください。",
@@ -1693,8 +1694,8 @@ class A1111Client {
     let current = [];
     if (!vae || !te) current = ((await this.get("/sdapi/v1/options").catch(() => ({})))?.forge_additional_modules || []).map(String);
     const fileOf = (name) => forge.files[name];
-    if (vae && !USER_SETTINGS.autoValues.includes(vae) && !fileOf(vae)) return { sd_vae: vae };
-    const vaePart = !vae ? current.filter(forge.isVaeFile) : USER_SETTINGS.autoValues.includes(vae) ? [] : [fileOf(vae)];
+    // 一覧に無い名前は送らない（自動と同じ扱い）。合わないものを送って止まるより、Checkpoint のものを使う
+    const vaePart = !vae ? current.filter(forge.isVaeFile) : USER_SETTINGS.autoValues.includes(vae) || !fileOf(vae) ? [] : [fileOf(vae)];
     const tePart = !te ? current.filter((f) => !forge.isVaeFile(f)) : USER_SETTINGS.autoValues.includes(te) || !fileOf(te) ? [] : [fileOf(te)];
     return { forge_additional_modules: [...tePart, ...vaePart] };
   }
@@ -2572,7 +2573,7 @@ class BaseImage {
     }
     if (res.textEncoders?.length) {
       const te = find(res.textEncoders);
-      if (te || infotext) set("textEncoder", () => { c.textEncoder = te || "None"; });
+      if (te || infotext) set("textEncoder", () => { c.textEncoder = te || "Automatic"; });
     }
     const bs = base.settings || {};
     if (bs.sampler) set("sampler", () => { s.sampler = this.samplerFor(backendKind, bs.sampler, res.samplers); });
@@ -2671,6 +2672,8 @@ class Doc {
     out.base = d.base && typeof d.base === "object" ? clone(d.base) : null;
     if (Number.isFinite(Number(d.sceneCount))) out.sceneCount = clamp(Math.round(Number(d.sceneCount)), USER_SETTINGS.limits.sceneCount);
     out.common = { ...base.common, ...(d.common || {}), settings: { ...base.common.settings, ...(d.common?.settings || {}) } };
+    // VAE・Text Encoder の「いまの設定のまま」（空）はやめた。ほかのアプリで選んだものが残ってエラーになるため、「自動」に読み替える
+    for (const key of ["vae", "textEncoder"]) if (!out.common[key]) out.common[key] = "Automatic";
     out.run = Object.fromEntries(Object.entries(base.run).map(([k, v]) => [k, d.run && k in d.run ? d.run[k] : v]));
     out.cast = Array.isArray(d.cast) ? d.cast.map((c) => this.person(c)) : base.cast;
     out.locations = Array.isArray(d.locations) ? d.locations.map((l) => this.person(l, "l")) : [];
@@ -3736,7 +3739,7 @@ class RightPanel {
   vaeEntries(list) {
     const named = (list || []).filter((v) => !USER_SETTINGS.autoValues.includes(v));
     const auto = this.app.store.data.backend === "comfy" ? [["Automatic", L.vaeAutoComfy]] : [["Automatic", L.vaeAuto], ["None", L.vaeNone]];
-    return [["", L.keepCurrent], ...auto, ...named.map((v) => [v, v])];
+    return [...auto, ...named.map((v) => [v, v])];
   }
 
   imageTab() {
@@ -3770,14 +3773,20 @@ class RightPanel {
     const swap = h("button", { class: "small", text: L.swapSize, onclick: () => { [c.width, c.height] = [c.height, c.width]; wIn.value = c.width; hIn.value = c.height; onSize(); } });
     const loraSel = h("select", { "data-key": "lora" });
     fillSelect(loraSel, [["", "—"], ...(res.loras || []).map((n) => [n, Infotext.displayName(n)])], "");
+    // 選んだ LoRA は「末尾」（全シーン共通）に足す。すでに入っている LoRA は足さない
+    const suffixEl = Form.text(c, "suffix", () => this.changed(), { rows: 2, "data-key": "suffix" });
     loraSel.addEventListener("change", () => {
       const name = loraSel.value;
       loraSel.value = "";
-      const target = app.lastText?.isConnected ? app.lastText : null;
-      if (!name || !target) return;
-      target.value = PromptBuilder.tidy([target.value, LoraTags.tag(name)]);
-      target.dispatchEvent(new Event("input"));
-      target.focus();
+      if (!name) return;
+      const shown = Infotext.displayName(name);
+      if (LoraTags.extract(c.suffix).loras.some((l) => Infotext.displayName(l.name).toLowerCase() === shown.toLowerCase())) {
+        app.notice(fmt(M.loraAlready, { name: shown }), "warn");
+        return;
+      }
+      suffixEl.value = PromptBuilder.tidy([suffixEl.value, LoraTags.tag(name)]);
+      suffixEl.dispatchEvent(new Event("input"));
+      app.notice(fmt(M.loraAdded, { name: shown }), "ok");
     });
     const loadBtn = h("button", { class: "mini", text: L.loadLists, title: L.loadListsTitle, onclick: async () => { await app.loadResources(msg); } });
     return [
@@ -3786,17 +3795,17 @@ class RightPanel {
         Form.prop(L.model, Form.select(c, "model", this.listEntries(res.models, [["", L.keepCurrent]]), () => this.changed(), { "data-key": "model", listed: !!res.models?.length })),
         Form.prop(L.vae, Form.select(c, "vae", this.vaeEntries(res.vaes), () => this.changed(), { "data-key": "vae", listed: !!res.vaes?.length }), { title: L.vaeTitle }),
         res.forgeNeo || res.textEncoders?.length || c.textEncoder
-          ? Form.prop(L.textEncoder, Form.select(c, "textEncoder", this.listEntries(res.textEncoders, [["", L.keepCurrent], ["None", L.textEncoderNone]]), () => this.changed(), { "data-key": "textEncoder", listed: !!res.textEncoders?.length }), { title: L.textEncoderTitle })
+          ? Form.prop(L.textEncoder, Form.select(c, "textEncoder", this.listEntries(res.textEncoders, [["Automatic", L.vaeAuto]]), () => this.changed(), { "data-key": "textEncoder", listed: !!res.textEncoders?.length }), { title: L.textEncoderTitle })
           : null,
         Form.prop(L.family, famSel, { title: L.familyTitle }),
         Form.prop(L.style, styleSel, { title: L.styleTitle }),
       ], [loadBtn]),
       Form.section("prompt", L.secPrompt, [
         Form.prop(L.quality, Form.text(c, "quality", () => this.changed(), { rows: 2, "data-key": "quality" }), { top: true, note: L.qualityNote }),
-        Form.prop(L.suffix, Form.text(c, "suffix", () => this.changed(), { rows: 2 }), { top: true, note: L.suffixNote }),
+        Form.prop(L.suffix, suffixEl, { top: true, note: L.suffixNote }),
+        Form.prop(L.insertLora, loraSel, { note: L.insertLoraNote }),
         Form.prop(L.negative, Form.text(c, "negative", () => this.changed(), { rows: 4 }), { top: true }),
         Form.prop(L.promptLayout, Form.seg([["lines", L.promptLayoutLines], ["inline", L.promptLayoutInline]], c.promptLayout, (v) => { c.promptLayout = v; this.changed(); }), { note: L.promptLayoutNote }),
-        Form.prop(L.insertLora, loraSel, { note: L.insertLoraNote }),
       ]),
       Form.section("sampling", L.secSampling, [
         Form.prop(L.sampler, Form.select(s, "sampler", this.listEntries(res.samplers), () => this.changed(), { listed: !!res.samplers?.length })),
@@ -4468,7 +4477,6 @@ class App {
     this.res = {};
     this.clock = new RunClock();
     this.lastRun = null;
-    this.lastText = null;
     this.conn = { image: "idle", llm: "idle" };
     this.runner = new Runner(this);
     this.bag = new Listeners();
@@ -5307,9 +5315,6 @@ class App {
     this.bag.on($("help-toggle"), "change", () => { this.store.data.ui.help = $("help-toggle").checked; this.store.save(); this.applyHelp(); });
     this.bag.on(document, "click", (e) => { if (!e.target.closest("#save-menu")) $("save-menu").hidden = true; });
     this.bag.on(document, "keydown", (e) => { if (e.key === "Escape") $("save-menu").hidden = true; });
-    this.bag.on(document, "focusin", (e) => {
-      if (e.target.closest?.(".layout") && e.target.matches("textarea, input[type=text], input:not([type])")) this.lastText = e.target;
-    });
     this.bag.on($("run-target"), "change", () => { this.doc.run.target = $("run-target").value; this.dirty = true; });
     const pickFile = (id, fn) => this.bag.on($(id), "change", (e) => {
       const f = e.target.files?.[0];
