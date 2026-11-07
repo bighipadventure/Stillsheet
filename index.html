@@ -205,7 +205,8 @@ body.resizing * { user-select: none; }
 .psec-title .tools { margin-left: auto; display: flex; gap: 4px; letter-spacing: 0; }
 .psec-body { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
 .side-foot { flex: none; padding: 8px 10px; background: var(--head); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
-.run-row { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 6px; }
+.run-row, .add-row { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 6px; }
+.add-row { padding-bottom: 6px; margin-bottom: 2px; border-bottom: 1px solid var(--line); }
 .run-row select, .run-row button { height: var(--run-height); }
 .tabs-h { flex: none; display: flex; background: var(--head); border-bottom: 1px solid var(--line); }
 .tabs-h button { flex: 1; border: none; border-radius: 0; background: transparent; min-height: 32px; border-bottom: 2px solid transparent; }
@@ -429,6 +430,10 @@ dialog#show[open] { display: flex; flex-direction: column; }
   <aside class="col-left" aria-label="ストーリーと登場人物">
     <div class="side-scroll" id="left-panel"></div>
     <div class="side-foot">
+      <div class="add-row">
+        <select id="add-at" aria-label="シーンを追加する位置"></select>
+        <button id="btn-add-scene">＋ シーンを追加</button>
+      </div>
       <div class="run-row">
         <select id="run-target" aria-label="生成するシーン"></select>
         <button class="run big" id="btn-run">▶ 生成を始める</button>
@@ -458,7 +463,6 @@ dialog#show[open] { display: flex; flex-direction: column; }
           <p class="story-title" id="story-title"></p>
           <p class="story-synopsis clip-lines" id="story-synopsis"></p>
         </div>
-        <button id="btn-add-scene">＋ シーンを追加</button>
       </div>
       <div id="set-strip"></div>
       <div id="scenes"></div>
@@ -1041,7 +1045,7 @@ install()
     brief: "",
     sceneCount: 6,
     common: {
-      family: "", style: "tags",
+      family: "", style: "tags", promptLayout: "lines",
       quality: "masterpiece, best quality, amazing quality, very aesthetic, absurdres",
       suffix: "",
       negative: "lowres, worst quality, low quality, bad anatomy, bad hands, extra fingers, missing fingers, fused fingers, extra arms, extra legs, deformed, disfigured, blurry, jpeg artifacts, text, watermark, signature",
@@ -1077,22 +1081,23 @@ Write:
 - "count": the people count, such as "1girl", "1boy, 1girl" or "no humans".
 - "prompt": the scene-specific prompt in English: action, pose, expression, composition and camera, lighting, time, weather and props. Do NOT describe the characters' appearance or outfit, the art style or quality tags. Describe the place only when no location is given.
 Output ONLY one JSON object: {"count": "", "prompt": ""}`,
-  checkPrompt: `You are a very strict quality inspector for AI-generated illustrations. Be harsh: when in doubt, deduct. Most AI images have at least one flaw, so a typical image should land between 40 and 75, and only a truly clean image that matches the prompt may reach 85 or more.
-You receive the image prompt and what the scene should show. Judge two things separately.
+  checkPrompt: `あなたは AI で生成したイラストを検品する、とても厳しい検品係です。迷ったら減点してください。AI の画像はたいてい何かしらの欠点があるので、ふつうの出来は 40〜75 点です。崩れがなく、プロンプトどおりの絵だけが 85 点以上になります。
+画像のプロンプトと、このシーンで描くべき内容を受け取ります。次の A と B を分けて判定してください。
 
-A. Drawing quality. Start from 100 and deduct:
-- ANATOMY FAILURE (instant fail): any visible hand or foot with the wrong number of fingers or toes, fused, melted, twisted, branching or boneless fingers or toes, a hand that is an unreadable blob, an extra, missing, detached, duplicated or impossibly bent arm or leg, an extra head, or a body part merged into another body or object. Count the fingers of every visible hand and the toes of every visible bare foot. If any of these exists, set "anatomy" to true, set "broken" to true and give "score" 20 or lower. Hands or feet that are naturally hidden, out of frame or inside pockets or gloves are not a failure.
-- Face and eyes: melted, doubled or smeared faces, mismatched or broken eyes, distorted teeth: -25 to -40.
-- Body proportions, wrong perspective, a neck or torso that is too long, shoulders at impossible angles: -15 to -30.
-- Duplicated people, wrong number of people: -30.
-- Broken objects, garbled background, warped lines, heavy noise, blur, artifacts, unwanted text, signatures or watermarks: -10 to -25 each.
-- Minor flaws (slightly odd fingers that still have the right count, small asymmetry, muddy details): -5 to -10 each.
-Set "broken" to true when any serious failure would be noticed at first glance.
+A. 作画の品質。100 点から減点します。
+- 人体の破綻（1発アウト）: 見えている手足の指の本数が違う、指がくっつく・溶ける・ねじれる・枝分かれする・骨がないように曲がる、手が何か分からない塊になっている、腕や脚が多い・足りない・ちぎれている・2本に分かれている・ありえない向きに曲がっている、頭が多い、体の一部がほかの人や物と混ざっている。見えている手の指と、素足の指はすべて数えてください。ひとつでもあれば "anatomy" を true、"broken" を true にし、"score" は 20 点以下にします。手足が自然に隠れている・画面の外・ポケットや手袋の中にあるのは破綻ではありません。
+- 顔と目: 溶けた・二重になった・にじんだ顔、左右で合わない目や崩れた目、ゆがんだ歯: -25〜-40 点。
+- 体のバランス: 遠近がおかしい、首や胴が長すぎる、肩がありえない角度: -15〜-30 点。
+- 同じ人が重複している、人数が違う: -30 点。
+- 壊れた物、崩れた背景、ゆがんだ線、強いノイズ・ぼけ・乱れ、いらない文字・サイン・透かし: それぞれ -10〜-25 点。
+- 小さな欠点（本数は合っているが少し変な指、少しの左右差、つぶれた細部）: それぞれ -5〜-10 点。
+ひと目で分かる大きな崩れがあれば "broken" を true にします。
 
-B. Prompt fidelity. Split the image prompt into its requested elements (people and count, character features, clothing, pose and action, expression, props, place, time, weather, lighting, camera). Ignore quality tags and style words. "prompt_match" is the percentage (0-100) of requested elements that are clearly visible and correct. List every requested element that is missing or wrong in "missing". Set "mismatch" to true when the number of people or the main action is clearly different from the scene.
+B. プロンプトの再現度。画像のプロンプトを、描くよう頼まれた要素（人数、キャラクターの特徴、服、ポーズと動作、表情、小物、場所、時間帯、天気、光、カメラ）に分けます。品質タグや画風の言葉は無視します。"prompt_match" は、頼まれた要素のうち、絵にはっきり正しく描かれているものの割合（0〜100）です。描かれていない・違っている要素は、すべて "missing" に書きます。人数や主な動作がシーンとはっきり違うときは "mismatch" を true にします。
 
-Output ONLY one JSON object, with no explanation and no markdown:
-{"score": 62, "anatomy": false, "broken": false, "prompt_match": 80, "mismatch": false, "missing": ["Japanese, one short phrase per missing element"], "issues": ["Japanese, one short sentence per drawing problem"]}`,
+"issues" と "missing" は、必ず日本語で、1項目につき短い1文（または1語句）で書いてください。
+説明やマークダウンは付けず、次の形の JSON を1つだけ出力してください。
+{"score": 62, "anatomy": false, "broken": false, "prompt_match": 80, "mismatch": false, "missing": ["描かれていない要素"], "issues": ["作画の問題点"]}`,
   labels: {
     secBase: "① ベース画像（お気に入りの1枚）",
     secStory: "② ストーリー",
@@ -1148,6 +1153,14 @@ Output ONLY one JSON object, with no explanation and no markdown:
     swapSize: "⇄ 縦横を入れ替え",
     loadLists: "一覧を読み込む",
     loadListsTitle: "画像AIから Checkpoint・VAE・サンプラー・LoRA の一覧を読み直します",
+    promptLayout: "送る形",
+    promptLayoutLines: "項目ごとに改行",
+    promptLayoutInline: "改行なし",
+    promptLayoutNote: "画像AIに送るプロンプトの並べ方です。「項目ごとに改行」は品質・人数・登場人物・シーン・場所・末尾を1行ずつに分けて送るので、あとで生成情報を見たときに読みやすくなります（区切りのカンマはそのまま付きます）。「改行なし」は全部を1行につなげて送ります。",
+    addAtEnd: "一番下に",
+    addAtTop: "先頭に",
+    addAtAfter: "シーン {n} のあとに",
+    thumbHint: "クリックで採用（★）・ダブルクリックで詳細",
     insertLora: "LoRA",
     insertLoraNote: "選ぶと、直前に触った入力欄に <lora:…> を足します。",
     keepCurrent: "（いまの設定のまま）",
@@ -1189,7 +1202,7 @@ Output ONLY one JSON object, with no explanation and no markdown:
     baseClear: "外す",
     baseReapply: "もう一度流し込む",
     setTitle: "セット（各シーンの1枚）",
-    setNote: "点数がいちばん高い合格画像を自動で選びます。画像の ★ を押すと、その1枚に固定します。",
+    setNote: "点数がいちばん高い合格画像を自動で選びます。サムネイルをクリックすると、その1枚に固定します。",
     setAuto: "自動",
     setPinned: "★手動",
     setEmpty: "まだ\nありません",
@@ -1327,8 +1340,8 @@ Output ONLY one JSON object, with no explanation and no markdown:
         "チェックをオフにしているときは、不合格にしていない最初の画像",
       ],
       flow: "チェックの流れ",
-      prompts: "文章AIに送っている指示（英語）",
-      promptNames: { checkPrompt: "画像のチェック", storyPrompt: "ストーリーの組み立て", sceneRewritePrompt: "シーンのプロンプトの書き直し" },
+      prompts: "文章AIに送っている指示",
+      promptNames: { checkPrompt: "画像のチェック（日本語）", storyPrompt: "ストーリーの組み立て（英語。プロンプトを英語で書かせるため）", sceneRewritePrompt: "シーンのプロンプトの書き直し（英語。プロンプトを英語で書かせるため）" },
     },
     files: {
       lead: "作業の状態はブラウザに保存しません。ページを閉じたり再読み込みしたりすると消えるので、続きを作るときは「保存 ▾」で JSON に保存してください（画面の幅や接続先などの設定だけはブラウザに残ります）。",
@@ -1351,7 +1364,7 @@ Output ONLY one JSON object, with no explanation and no markdown:
     { title: "お気に入りの1枚から始める", items: ["左の「① ベース画像」に画像をドロップすると、その画像の設定を右の「画像の共通設定」に流し込みます。", "品質タグを除いた残りのプロンプトでシーン1を作るので、あとはプロンプトを変えて生成するだけです。", "「シードも引き継ぐ」をオンにして「もう一度流し込む」と、シードもベースと同じにします。"] },
     { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・出る人・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、まず全シーンの画像を指定枚数ずつ作り、作り終えたら文章AIが全シーンをまとめてチェックします。合格がないシーンだけ作り直して、またチェックします。"] },
     { title: "自分で組んだプロンプトを順番に作る", items: ["「＋ シーンを追加」でシーンを並べ、プロンプトを書きます。チェックを切れば、指定枚数を順番に作るだけの補助ツールになります。", "日本語のタイトル・ナレーションだけ書いて「✦ 文から書き直す」を押すと、そのシーンのプロンプトだけを文章AIが書きます。", "「このシーンだけの設定」で、枚数・大きさ（横長の構図だけ横向きなど）・シード（お気に入りのシードを固定）・追加のネガティブを変えられます。"] },
-    { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルの ★ を押すとその1枚に固定し、もう一度押すと自動に戻ります。", "画像を開くと、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
+    { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルをクリックするとその1枚が下に大きく出て、自動で ★（固定）が付きます。★ をもう一度押すと自動に戻ります。", "サムネイルをダブルクリックすると詳細が開き、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
     { title: "同じシチュを別のキャラで作る", items: ["「保存 ▾」→「シチュを保存」でシーンを保存し、キャラごとに「キャストを保存」しておきます。", "「開く」でシチュとキャストを開くと、組み合わせを入れ替えて同じシチュを何組でも作れます。"] },
     { title: "残す・共有する", items: ["作業の状態はブラウザに残りません。閉じる前に「保存 ▾」で保存してください。", "「セット」欄の「ダウンロード（ZIP）」か「Prompt Reel に投稿」で、各シーンの1枚を残します。", "「▶ 紙芝居」で、各シーンの1枚とナレーションを順番に全画面で見られます（← → キー・自動再生）。"] },
   ],
@@ -2505,7 +2518,12 @@ class LoraTags {
 class PromptBuilder {
   static tidy(parts) {
     return parts.map((p) => String(p || "").trim()).filter(Boolean).join(", ")
-      .replace(/\s*,\s*(?:,\s*)+/g, ", ").replace(/^\s*,\s*|\s*,\s*$/g, "").replace(/[ \t]{2,}/g, " ").trim();
+      .replace(/\s*,\s*(?:,\s*)+/g, (m) => (m.includes("\n") ? ",\n" : ", ")).replace(/^\s*,\s*|\s*,\s*$/g, "").replace(/[ \t]{2,}/g, " ").trim();
+  }
+
+  static join(parts, layout) {
+    if (layout !== "lines") return this.tidy(parts);
+    return parts.map((p) => this.tidy([p])).filter(Boolean).join(",\n");
   }
 
   static castOf(doc, scene) {
@@ -2516,8 +2534,8 @@ class PromptBuilder {
     const c = doc.common;
     const loc = doc.locations.find((l) => l.id === scene.location);
     return {
-      prompt: this.tidy([c.quality, scene.count, ...this.castOf(doc, scene).map((p) => p.prompt), scene.prompt, loc?.prompt, c.suffix]),
-      negative: this.tidy([c.negative, scene.negative]),
+      prompt: this.join([c.quality, scene.count, ...this.castOf(doc, scene).map((p) => p.prompt), scene.prompt, loc?.prompt, c.suffix], c.promptLayout),
+      negative: this.join([c.negative, scene.negative], c.promptLayout),
     };
   }
 }
@@ -2836,13 +2854,13 @@ class ImageChecker {
   static userText(doc, scene, img) {
     const cast = PromptBuilder.castOf(doc, scene);
     return [
-      `Image prompt (check fidelity against this): ${this.promptOf(doc, scene, img) || "-"}`,
+      `画像のプロンプト（再現度はこれと比べる）: ${this.promptOf(doc, scene, img) || "-"}`,
       "",
-      "What this scene should show:",
-      `- title: ${scene.title || "-"}`,
-      `- narration: ${scene.text || "-"}`,
-      `- people: ${scene.count || "-"}${cast.length ? ` (${cast.map((c) => c.name || "unnamed").join(", ")})` : ""}`,
-      "Check the attached image.",
+      "このシーンで描くべき内容:",
+      `- タイトル: ${scene.title || "-"}`,
+      `- ナレーション: ${scene.text || "-"}`,
+      `- 人数: ${scene.count || "-"}${cast.length ? `（${cast.map((c) => c.name || "名前なし").join("、")}）` : ""}`,
+      "添付した画像をチェックしてください。",
     ].join("\n");
   }
 
@@ -3652,6 +3670,7 @@ class RightPanel {
         Form.prop(L.quality, Form.text(c, "quality", () => this.changed(), { rows: 2, "data-key": "quality" }), { top: true, note: L.qualityNote }),
         Form.prop(L.suffix, Form.text(c, "suffix", () => this.changed(), { rows: 2 }), { top: true, note: L.suffixNote }),
         Form.prop(L.negative, Form.text(c, "negative", () => this.changed(), { rows: 4 }), { top: true }),
+        Form.prop(L.promptLayout, Form.seg([["lines", L.promptLayoutLines], ["inline", L.promptLayoutInline]], c.promptLayout, (v) => { c.promptLayout = v; this.changed(); }), { note: L.promptLayoutNote }),
         Form.prop(L.insertLora, loraSel, { note: L.insertLoraNote }),
       ]),
       Form.section("sampling", L.secSampling, [
@@ -3874,15 +3893,35 @@ class SceneBoard {
       const badge = img.check?.anatomy ? L.anatomyNg : img.check?.state === "done" ? fmt(L.scorePt, { score: img.check.score }) : img.check?.state === "error" ? "!" : img.manual ? (v ? L.ok : L.ng) : `#${i + 1}`;
       const pinned = app.picks.get(sceneId) === img.id;
       const cls = ["thumb", v === true ? "ok" : v === false ? "ng" : "pending", img === picked ? "picked" : "", pinned ? "pinned" : ""].filter(Boolean).join(" ");
-      const open = () => app.viewer.open(sceneId, img.id);
+      const select = () => this.selectImage(sceneId, img.id);
       const ck = img.check;
-      const tip = [`#${i + 1}`, ck?.state === "done" ? fmt(L.scorePt, { score: ck.score }) : ck?.error, ck?.anatomy ? L.anatomyNg : "", Number.isFinite(ck?.match) ? fmt(L.matchPct, { v: ck.match }) : "", ...(ck?.issues || []), ...(ck?.missing || [])].filter(Boolean).join("\n");
-      return h("div", { class: cls, title: tip, role: "button", tabindex: 0, "data-image": img.id, onclick: open, onkeydown: (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } } },
+      const tip = [`#${i + 1}`, ck?.state === "done" ? fmt(L.scorePt, { score: ck.score }) : ck?.error, ck?.anatomy ? L.anatomyNg : "", Number.isFinite(ck?.match) ? fmt(L.matchPct, { v: ck.match }) : "", ...(ck?.issues || []), ...(ck?.missing || []), L.thumbHint].filter(Boolean).join("\n");
+      return h("div", { class: cls, title: tip, role: "button", tabindex: 0, "data-image": img.id, onclick: select, ondblclick: () => app.viewer.open(sceneId, img.id), onkeydown: (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); select(); } } },
         h("img", { src: img.thumb, alt: "", loading: "lazy" }),
         h("span", { class: `badge ${v === true ? "ok" : v === false ? "ng" : ""}`, text: badge }),
         h("button", { class: "pin", text: "★", title: L.pinTitle, "aria-pressed": String(pinned), disabled: !img.blob, onclick: (e) => { e.stopPropagation(); app.togglePin(sceneId, img.id); app.sceneChanged(sceneId); } }));
     }));
     card.media.replaceChildren(thumbs, this.pickView(sceneId, list, picked));
+  }
+
+  selectImage(sceneId, imageId) {
+    const app = this.app;
+    const card = this.cards.get(sceneId);
+    const list = app.images.list(sceneId);
+    if (!card || !list.find((i) => i.id === imageId)?.blob) return;
+    app.picks.set(sceneId, imageId);
+    const picked = app.pickOf(sceneId);
+    const c = Judge.counts(list, app.doc.run);
+    const scene = app.doc.scenes.find((s) => s.id === sceneId);
+    card.stat.innerHTML = fmt(L.statLine, { total: `${c.total}/${Doc.perScene(app.doc, scene)}`, good: c.good, ng: c.ng, pending: c.pending }) + esc(fmt(L.statPicked, { n: list.indexOf(picked) + 1 }));
+    for (const el of card.media.querySelectorAll(".thumb")) {
+      const on = el.dataset.image === imageId;
+      el.classList.toggle("picked", on);
+      el.classList.toggle("pinned", on);
+      el.querySelector(".pin")?.setAttribute("aria-pressed", String(on));
+    }
+    card.media.querySelector(".scene-pick")?.replaceWith(this.pickView(sceneId, list, picked));
+    app.setStrip.render();
   }
 
   pickView(sceneId, list, picked) {
@@ -4560,6 +4599,7 @@ class App {
   }
 
   updateRunNote() {
+    this.updateAddAt();
     const r = this.doc.run;
     const ids = this.doc.scenes.map((s) => s.id);
     const total = this.doc.scenes.reduce((n, s) => n + Doc.perScene(this.doc, s), 0);
@@ -4711,9 +4751,20 @@ class App {
 
   // SCENES
   addScene() {
-    this.doc.scenes.push(Doc.newScene({ cast: this.doc.cast.slice(0, 1).map((c) => c.id) }));
+    const at = $("add-at").value;
+    const index = at === "end" ? this.doc.scenes.length : clamp(Number(at) || 0, [0, this.doc.scenes.length]);
+    const scene = Doc.newScene({ cast: this.doc.cast.slice(0, 1).map((c) => c.id) });
+    this.doc.scenes.splice(index, 0, scene);
+    $("add-at").value = "end";
     this.docChanged(true);
-    this.board.cards.get(this.doc.scenes.at(-1).id)?.el.scrollIntoView({ behavior: "smooth", block: "center" });
+    this.board.cards.get(scene.id)?.el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  updateAddAt() {
+    const sel = $("add-at");
+    const n = this.doc.scenes.length;
+    const entries = [["end", L.addAtEnd], ...(n ? [["0", L.addAtTop]] : []), ...Array.from({ length: Math.max(0, n - 1) }, (_, i) => [String(i + 1), fmt(L.addAtAfter, { n: i + 1 })])];
+    fillSelect(sel, entries, entries.some(([v]) => v === sel.value) ? sel.value : "end");
   }
 
   duplicateScene(scene) {
