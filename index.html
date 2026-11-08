@@ -442,7 +442,8 @@ dialog#show[open] { display: flex; flex-direction: column; }
   <label class="check help-toggle" title="オフにすると、画面の説明文を隠します（使い慣れた人向け）"><input type="checkbox" id="help-toggle" checked> 説明</label>
   <button class="help-btn" id="btn-show" title="各シーンの1枚を順番に全画面で見ます">▶ 紙芝居</button>
   <button class="help-btn" id="btn-help">？ ツールの使い方</button>
-  <input type="file" id="file-open" accept=".json,application/json,.zip,application/zip,image/png,image/jpeg,image/webp" hidden>
+  <input type="file" id="file-open" accept=".json,application/json,.zip,application/zip,image/png,image/jpeg,image/webp" multiple hidden>
+  <input type="file" id="file-folder" webkitdirectory multiple hidden>
   <input type="file" id="file-base" accept="image/png,image/jpeg,image/webp" hidden>
 </header>
 <div class="menu-list" id="save-menu" hidden></div>
@@ -1212,10 +1213,10 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     keepRejected: "不合格の画像も手元に残す",
     keepRejectedNote: "オフにすると、不合格の画像は縮小画像だけ残してメモリを節約します（元の画像は画像AIの出力フォルダにあります）。",
     freeVram: "チェックの前に画像AIのモデルを VRAM から外す",
-    saveAll: "全部を保存",
-    saveAllNote: "ストーリー・シーン・登場人物・場所・画像の設定・ベース画像すべて",
+    saveAll: "画像なしで保存（JSON）",
+    saveAllNote: "ストーリー・シーン・登場人物・場所・画像の設定・ベース画像。生成した画像・点数は入りません（軽いファイル）",
     saveWithImages: "画像も含めて保存（ZIP）",
-    saveWithImagesNote: "「全部を保存」の中身と、画像ファイルそのものを1つの ZIP にまとめます。採用した画像は「採用」フォルダ、生成した全画像は「画像」フォルダに入ります。「開く」でこの ZIP を選ぶと、点数・合否・★の選択まで元どおりに戻ります",
+    saveWithImagesNote: "続きから作業するための保存です。設定と、生成した画像・点数・合否・★の確定まで丸ごと ZIP にします。ZIP のまま、または展開したフォルダごと画面にドロップすると、そのときの状態に戻ります",
     zipImagesDir: "画像",
     zipPickedDir: "採用",
     saveSituation: "シチュを保存",
@@ -1388,15 +1389,15 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     files: {
       lead: "作業の状態はブラウザに保存しません。ページを閉じたり再読み込みしたりすると消えるので、続きを作るときは「保存 ▾」で JSON に保存してください（画面の幅や接続先などの設定だけはブラウザに残ります）。",
       kinds: [
-        ["全部を保存", "ストーリー・シーン・登場人物・場所・画像の設定・生成とチェックの設定・ベース画像", "まるごと入れ替わります"],
-        ["画像も含めて保存（ZIP）", "「全部を保存」の中身＋画像ファイル（採用した画像は「採用」フォルダ、全画像は「画像」フォルダ）＋点数・合否・★の選択", "「開く」で ZIP を選ぶと、まるごと入れ替わり、画像まで元どおりに戻ります"],
+        ["画像も含めて保存（ZIP）", "設定のすべて＋画像ファイル（採用した画像は「採用」フォルダ、全画像は「画像」フォルダ）＋点数・合否・★の確定", "ZIP のまま、または展開したフォルダごとドロップすると、画像まで保存したときの状態に戻ります。中の stillsheet_project.json だけを開いたときは、画像の入ったフォルダを選ぶボタンが出ます"],
+        ["画像なしで保存（JSON）", "ストーリー・シーン・登場人物・場所・画像の設定・生成とチェックの設定・ベース画像", "まるごと入れ替わります（画像は空）"],
         ["シチュを保存", "ストーリー・シーン・場所・生成とチェックの設定（登場人物と画像の設定は含めない）", "いまの登場人物と画像の設定のまま、シーンだけが入れ替わります"],
         ["キャストを保存", "登場人物だけ", "シーンはそのままで、A・B… の中身だけが入れ替わります"],
       ],
       head: ["保存", "中身", "開いたとき"],
       images: "生成した画像",
-      imagesNote: "「全部を保存」「シチュを保存」「キャストを保存」の JSON には画像は入りません。続きから作業したいときは「画像も含めて保存（ZIP）」を使ってください。完成したセットは「セット」欄の「ダウンロード（ZIP）」か「Prompt Reel に投稿」で残せます。元の画像は画像AIの出力フォルダにもすべて保存されています。",
-      zip: "ZIP の中身: 各シーンの1枚（01_タイトル.png…、生成情報入り）・story.txt（タイトルとナレーション）・stillsheet.json（全部を保存した JSON）。「ZIP に合格画像もすべて入れる」をオンにすると good/ にも入ります。",
+      imagesNote: "「画像なしで保存」「シチュを保存」「キャストを保存」の JSON には画像は入りません。続きから作業したいときは「画像も含めて保存（ZIP）」を使ってください。完成したセットは「セット」欄の「ダウンロード（ZIP）」か「Prompt Reel に投稿」で残せます。元の画像は画像AIの出力フォルダにもすべて保存されています。",
+      zip: "ZIP の中身: 各シーンの1枚（01_タイトル.png…、生成情報入り）・story.txt（タイトルとナレーション）・stillsheet.json（画像なしで保存した JSON）。「ZIP に合格画像もすべて入れる」をオンにすると good/ にも入ります。",
       reel: "Prompt Reel に投稿: 各シーンの1枚をシーンの順に、1枚目を □1、2枚目からを差分として投稿画面に渡します。タイトルとメモ（あらすじ・ナレーション）は空欄のときだけ入ります。",
     },
     state: { lead: "いまの接続と作業の状態です。開くたびに読み直します。", reload: "読み直す", image: "画像AI", llm: "文章AI", work: "作業", run: "前回の実行" },
@@ -1473,6 +1474,8 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     llmEmptyReply: "（返事が空でした）",
     savedProject: "保存しました。",
     loadedProject: "読み込みました（{n} シーン）。画像は入っていないファイルです。",
+    needImageFolder: "読み込みました（{n} シーン）。このファイルの画像（{m} 枚）は、同じフォルダの「画像」に入っています。下のボタンで、展開した ZIP のフォルダを選んでください（次からはフォルダごとドロップすると一度で戻ります）。",
+    imageFolderMissing: "選んだフォルダに、このファイルの画像が見つかりませんでした。「画像も含めて保存（ZIP）」を展開したフォルダ（stillsheet_project.json と「画像」が入っている場所）を選んでください。",
     loadedProjectImages: "読み込みました（{n} シーン・画像 {m} 枚）。",
     loraAdded: "LoRA「{name}」を「末尾」に足しました。",
     loraAlready: "LoRA「{name}」は「末尾」にもう入っています。",
@@ -1528,7 +1531,8 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
       checkOnlyNoLlm: "文章AIにつながりません。文章AIを起動してから、もう一度「文章AIチェック」を押してください。",
       checkNoLlm: "画像のチェックに使う文章AIにつながりません。文章AIを起動して「更新」を押すか、右の「生成とチェック」でチェックをオフにしてください。",
     },
-    fixActions: { settings: "設定を開く", settingsLlm: "文章AIの設定を開く", settingsGuide: "はじめにを開く", image: "画像の共通設定を開く", run: "生成とチェックを開く", story: "ストーリーへ移動", scene: "シーン {n} へ移動", refresh: "更新する", target: "全シーンにする" },
+    fixActions: {
+      imageFolder: "画像のフォルダを選ぶ", settings: "設定を開く", settingsLlm: "文章AIの設定を開く", settingsGuide: "はじめにを開く", image: "画像の共通設定を開く", run: "生成とチェックを開く", story: "ストーリーへ移動", scene: "シーン {n} へ移動", refresh: "更新する", target: "全シーンにする" },
   },
 };
 
@@ -2258,6 +2262,29 @@ class ZipWriter {
       .forEach(([o, v, n]) => (n === 4 ? end.setUint32(o, v, true) : end.setUint16(o, v, true)));
     return new Blob([...parts, ...central, end], { type: "application/zip" });
   }
+}
+
+// ===== DROPPED FILES AND FOLDERS =====
+// ドロップされたファイルとフォルダの中身を { path, file } の一覧にする（フォルダは中まで読む）
+async function droppedFiles(dt) {
+  const entries = [...(dt?.items || [])].map((it) => it.webkitGetAsEntry?.()).filter(Boolean);
+  if (!entries.length) return [...(dt?.files || [])].map((file) => ({ path: file.name, file }));
+  const out = [];
+  const walk = async (entry, prefix) => {
+    if (entry.isFile) {
+      const file = await new Promise((ok, ng) => entry.file(ok, ng));
+      out.push({ path: prefix + entry.name, file });
+      return;
+    }
+    const reader = entry.createReader();
+    for (;;) {
+      const batch = await new Promise((ok, ng) => reader.readEntries(ok, ng));
+      if (!batch.length) break;
+      for (const child of batch) await walk(child, `${prefix}${entry.name}/`);
+    }
+  };
+  for (const entry of entries) await walk(entry, "");
+  return out;
 }
 
 // ===== ZIP READER (STORED / DEFLATE) =====
@@ -4989,6 +5016,7 @@ class App {
     else if (kind === "run") this.right.show("run", "threshold");
     else if (kind === "story") this.left.focus("story", "#brief");
     else if (kind === "scene") this.board.focusScene(arg);
+    else if (kind === "imageFolder") $("file-folder").click();
     else if (kind === "target") { this.doc.run.target = "all"; $("run-target").value = "all"; this.status(M.runIdle); }
   }
 
@@ -5208,10 +5236,18 @@ class App {
   async restoreImages(obj, zipFiles) {
     const saved = obj.images && typeof obj.images === "object" ? obj.images : {};
     const mimeOf = (path) => (/\.jpe?g$/i.test(path) ? "image/jpeg" : /\.webp$/i.test(path) ? "image/webp" : "image/png");
+    // ZIP の中の名前はそのまま、フォルダから開いたときは「展開したフォルダ名/画像/…」なので末尾で探す
+    const find = (path) => {
+      if (!zipFiles || typeof path !== "string") return null;
+      if (zipFiles.has(path)) return zipFiles.get(path);
+      for (const [k, v] of zipFiles) if (k.endsWith(`/${path}`)) return v;
+      return null;
+    };
     const blobOf = (it) => {
       if (typeof it?.data === "string" && it.data.startsWith("data:image/")) return dataUrlToBlob(it.data);
-      const bytes = typeof it?.file === "string" && zipFiles?.get(it.file);
-      return bytes ? new Blob([bytes], { type: mimeOf(it.file) }) : null;
+      const bytes = find(it?.file);
+      if (!bytes) return null;
+      return bytes instanceof Blob ? new Blob([bytes], { type: bytes.type || mimeOf(it.file) }) : new Blob([bytes], { type: mimeOf(it.file) });
     };
     let m = 0;
     for (const scene of this.doc.scenes) {
@@ -5239,7 +5275,12 @@ class App {
       if (n && !confirm(fmt(M.loadDiscard, { n }))) return;
       this.replaceDoc(Doc.normalize(obj));
       const m = await this.restoreImages(obj, zipFiles);
-      this.notice(m ? fmt(M.loadedProjectImages, { n: this.doc.scenes.length, m }) : fmt(M.loadedProject, { n: this.doc.scenes.length }), "ok");
+      const wanted = Object.values(obj.images && typeof obj.images === "object" ? obj.images : {}).flat().filter((it) => typeof it?.file === "string").length;
+      this.pendingProject = !m && wanted ? obj : null;
+      if (m) this.notice(fmt(M.loadedProjectImages, { n: this.doc.scenes.length, m }), "ok");
+      else if (wanted && zipFiles) this.notice(M.imageFolderMissing, "warn", "imageFolder");
+      else if (wanted) this.notice(fmt(M.needImageFolder, { n: this.doc.scenes.length, m: wanted }), "warn", "imageFolder");
+      else this.notice(fmt(M.loadedProject, { n: this.doc.scenes.length }), "ok");
     } catch (err) {
       this.notice(err instanceof UserError ? err.message : M.loadFailed, "err");
     }
@@ -5258,6 +5299,33 @@ class App {
     if (obj?.format === USER_SETTINGS.situationFormat) return this.openSituation(obj);
     if (obj?.format === USER_SETTINGS.castFormat) return this.swapCastFrom(obj);
     return this.openProject(file);
+  }
+
+  /* 複数のファイル・フォルダを開く（展開した「画像も含めて保存（ZIP）」のフォルダをドロップしたときなど）。
+     entries は { path: "フォルダ/画像/01_…/01_80点_123.png", file }。プロジェクトの JSON を探し、その中の画像の場所（file）と
+     path の末尾を照らし合わせて画像を戻す。JSON がないときは、先に開いた JSON（fallback）の画像を探す */
+  async openFiles(entries, fallback = null) {
+    const projectEntry = entries.find((e) => e.file.name === USER_SETTINGS.zipProjectFile) || entries.find((e) => /\.json$/i.test(e.file.name));
+    let obj = null;
+    if (projectEntry) {
+      try {
+        obj = await readJsonFile(projectEntry.file);
+      } catch {
+        obj = null;
+      }
+    }
+    if (obj?.format !== USER_SETTINGS.projectFormat) obj = fallback;
+    if (!obj) {
+      const zip = entries.find((e) => /\.zip$/i.test(e.file.name));
+      if (zip) return this.openZip(zip.file);
+      if (projectEntry) return this.openFile(projectEntry.file);
+      const image = entries.find((e) => /\.(png|jpe?g|webp)$/i.test(e.file.name));
+      if (image) return this.loadBase(image.file);
+      this.notice(M.loadFailed, "err");
+      return;
+    }
+    const files = new Map(entries.map((e) => [e.path.replace(/\\/g, "/").replace(/^\/+/, ""), e.file]));
+    return this.openProject(projectEntry?.file || null, obj, files);
   }
 
   async openZip(file) {
@@ -5477,8 +5545,8 @@ class App {
     if (!menu.hidden) { menu.hidden = true; return; }
     const item = (label, note, fn) => h("button", { onclick: () => { menu.hidden = true; fn(); } }, label, h("small", { text: note }));
     menu.replaceChildren(
-      item(L.saveAll, L.saveAllNote, () => this.saveProject()),
       item(L.saveWithImages, L.saveWithImagesNote, () => this.saveProjectWithImages()),
+      item(L.saveAll, L.saveAllNote, () => this.saveProject()),
       item(L.saveSituation, L.saveSituationNote, () => this.saveSituation()),
       item(L.saveCast, L.saveCastNote, () => this.saveCast()));
     const r = $("btn-save").getBoundingClientRect();
@@ -5511,16 +5579,27 @@ class App {
       e.target.value = "";
       if (f) fn(f);
     });
-    pickFile("file-open", (f) => this.openFile(f));
+    this.bag.on($("file-open"), "change", (e) => {
+      const files = [...(e.target.files || [])];
+      e.target.value = "";
+      if (files.length === 1) this.openFile(files[0]);
+      else if (files.length) this.openFiles(files.map((file) => ({ path: file.name, file })));
+    });
+    this.bag.on($("file-folder"), "change", (e) => {
+      const files = [...(e.target.files || [])].map((file) => ({ path: file.webkitRelativePath || file.name, file }));
+      e.target.value = "";
+      if (files.length) this.openFiles(files, this.pendingProject);
+    });
     pickFile("file-base", (f) => this.loadBase(f));
     this.bag.on(window, "beforeunload", (e) => {
       if (this.runner.busy || this.dirty || this.imageCount()) { e.preventDefault(); e.returnValue = M.leaveConfirm; }
     });
     this.bag.on(document, "dragover", (e) => e.preventDefault());
-    this.bag.on(document, "drop", (e) => {
-      const f = [...(e.dataTransfer?.files || [])].find((x) => /\.(json|png|jpe?g|webp)$/i.test(x.name));
+    this.bag.on(document, "drop", async (e) => {
       e.preventDefault();
-      if (f) this.openFile(f);
+      const entries = await droppedFiles(e.dataTransfer);
+      if (entries.length === 1 && !entries[0].path.includes("/")) this.openFile(entries[0].file);
+      else if (entries.length) this.openFiles(entries);
     });
   }
 }
