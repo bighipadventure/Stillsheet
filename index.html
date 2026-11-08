@@ -192,15 +192,22 @@ input[type="checkbox"]:disabled { opacity: .45; cursor: not-allowed; }
 
 /* ===== LAYOUT ===== */
 .layout { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: var(--left-w, 320px) 6px minmax(0, 1fr) 6px var(--right-w, 340px); background: var(--line); }
-/* 左右のパネルを隠したときは、その列と仕切りを 0 にして真ん中を広げる */
-.layout.hide-left { grid-template-columns: 0 0 minmax(0, 1fr) 6px var(--right-w, 340px); }
-.layout.hide-right { grid-template-columns: var(--left-w, 320px) 6px minmax(0, 1fr) 0 0; }
-.layout.hide-left.hide-right { grid-template-columns: 0 0 minmax(0, 1fr) 0 0; }
-/* 列の並び（グリッドの位置）を崩さないよう、消さずに幅 0 の列で見えなくする。1列表示のときは消す */
-.layout.hide-left > .col-left, .layout.hide-left > .splitter[data-side="left"],
-.layout.hide-right > .col-right, .layout.hide-right > .splitter[data-side="right"] { visibility: hidden; overflow: hidden; }
-.panel-toggle { flex: none; font-size: 12px; white-space: nowrap; }
-.panel-toggle[aria-pressed="false"] { color: var(--accent-text); border-color: var(--accent-text); }
+/* パネルを畳むボタン（Photoshop のパネルの « » のように、パネルの真ん中寄りの端の上に置く）。
+   畳んだパネルは細い帯だけになり、帯の » « で開く。グリッドの並びを崩さないよう、列は消さずに細くする */
+.panel-bar { flex: none; display: flex; height: 22px; background: var(--head); border-bottom: 1px solid var(--line); }
+.col-left .panel-bar { justify-content: flex-end; }
+.col-right .panel-bar { justify-content: flex-start; }
+.panel-collapse { min-height: 0; height: 22px; padding: 0 8px; border: none; border-radius: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 700; letter-spacing: -.12em; line-height: 1; display: flex; align-items: center; gap: 6px; }
+.panel-collapse:hover { background: var(--accent); color: var(--on-accent); border: none; }
+.panel-collapse .label { display: none; letter-spacing: 0; font-size: 12px; }
+.layout.hide-left { grid-template-columns: var(--rail-w) 0 minmax(0, 1fr) 6px var(--right-w, 340px); }
+.layout.hide-right { grid-template-columns: var(--left-w, 320px) 6px minmax(0, 1fr) 0 var(--rail-w); }
+.layout.hide-left.hide-right { grid-template-columns: var(--rail-w) 0 minmax(0, 1fr) 0 var(--rail-w); }
+.layout { --rail-w: 24px; }
+.layout.hide-left > .splitter[data-side="left"], .layout.hide-right > .splitter[data-side="right"] { visibility: hidden; }
+.layout.hide-left > .col-left > :not(.panel-bar), .layout.hide-right > .col-right > :not(.panel-bar) { display: none; }
+.layout.hide-left > .col-left .panel-bar, .layout.hide-right > .col-right .panel-bar { height: 100%; border-bottom: none; justify-content: center; }
+.layout.hide-left > .col-left .panel-collapse, .layout.hide-right > .col-right .panel-collapse { height: 100%; width: 100%; padding: 10px 0; align-items: flex-start; justify-content: center; }
 .splitter { cursor: col-resize; background: var(--line); position: relative; touch-action: none; }
 .splitter::after { content: ""; position: absolute; left: 2px; right: 2px; top: 50%; height: 36px; margin-top: -18px; border-radius: 1px; background: var(--line-strong); }
 .splitter:hover, .splitter.dragging { background: var(--accent); }
@@ -226,7 +233,10 @@ body.resizing * { user-select: none; }
   html, body { height: auto; }
   body { overflow: visible; }
   .layout, .layout.hide-left, .layout.hide-right, .layout.hide-left.hide-right { grid-template-columns: 1fr; }
-  .layout.hide-left > .col-left, .layout.hide-right > .col-right { display: none; }
+  /* 1列表示では、畳んだパネルは横長の帯（» 左パネル）になる */
+  .layout.hide-left > .col-left .panel-bar, .layout.hide-right > .col-right .panel-bar { height: 30px; }
+  .layout.hide-left > .col-left .panel-collapse, .layout.hide-right > .col-right .panel-collapse { padding: 0 12px; align-items: center; justify-content: flex-start; }
+  .layout.hide-left .panel-collapse .label, .layout.hide-right .panel-collapse .label { display: inline; }
   .splitter { display: none; }
   .side-scroll, .insp-scroll, .center-scroll { overflow: visible; }
   .pills .pill-app { display: none; }
@@ -449,7 +459,6 @@ dialog#show[open] { display: flex; flex-direction: column; }
 </head>
 <body>
 <header class="topbar">
-  <button class="quiet panel-toggle" id="btn-toggle-left" aria-pressed="true"></button>
   <h1>Stillsheet</h1>
   <div class="pills">
     <button class="pill" id="pill-llm" data-state="idle" title="文章AIの接続（押すと設定を開きます）"><span class="pill-label">文章AI</span><span class="pill-app">確認中</span></button>
@@ -463,7 +472,6 @@ dialog#show[open] { display: flex; flex-direction: column; }
   <label class="check help-toggle" title="オフにすると、画面の説明文を隠します（使い慣れた人向け）"><input type="checkbox" id="help-toggle" checked> 説明</label>
   <button class="help-btn" id="btn-show" title="各シーンの1枚を順番に全画面で見ます">▶ 紙芝居</button>
   <button class="help-btn" id="btn-help">？ ツールの使い方</button>
-  <button class="quiet panel-toggle" id="btn-toggle-right" aria-pressed="true"></button>
   <input type="file" id="file-open" accept=".json,application/json,.zip,application/zip,image/png,image/jpeg,image/webp" multiple hidden>
   <input type="file" id="file-folder" webkitdirectory multiple hidden>
   <input type="file" id="file-base" accept="image/png,image/jpeg,image/webp" hidden>
@@ -472,6 +480,7 @@ dialog#show[open] { display: flex; flex-direction: column; }
 
 <main class="layout">
   <aside class="col-left" aria-label="ストーリーと登場人物">
+    <div class="panel-bar"><button class="panel-collapse" id="btn-toggle-left" type="button" aria-expanded="true"><span class="arrow"></span><span class="label">左パネル</span></button></div>
     <div class="side-scroll" id="left-panel"></div>
     <div class="side-foot">
       <div class="add-row">
@@ -515,6 +524,7 @@ dialog#show[open] { display: flex; flex-direction: column; }
   <div class="splitter" data-side="right" role="separator" aria-orientation="vertical" aria-label="右のパネルの幅（ドラッグで調整・ダブルクリックで元に戻す）" title="ドラッグで幅を調整（ダブルクリックで元に戻す）"></div>
 
   <aside class="col-right" aria-label="画像の設定と生成の設定">
+    <div class="panel-bar"><button class="panel-collapse" id="btn-toggle-right" type="button" aria-expanded="true"><span class="arrow"></span><span class="label">右パネル</span></button></div>
     <div class="tabs-h" id="right-tabs" role="tablist"></div>
     <div class="insp-scroll" id="right-panel"></div>
   </aside>
@@ -1205,7 +1215,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     promptLayoutLines: "項目ごとに改行",
     promptLayoutInline: "改行なし",
     promptLayoutNote: "画像AIに送るプロンプトの並べ方です。「項目ごとに改行」は品質・人数・登場人物・シーン・場所・末尾を1行ずつに分けて送るので、あとで生成情報を見たときに読みやすくなります（区切りのカンマはそのまま付きます）。「改行なし」は全部を1行につなげて送ります。",
-    panelToggle: { left: ["◀ 左", "▶ 左"], right: ["右 ▶", "右 ◀"] },
+    panelToggle: { left: ["«", "»"], right: ["»", "«"] },
     panelToggleTitle: {
       left: ["左のパネル（ベース画像・ストーリー・登場人物・場所・生成ボタン）を隠して、シーンを広く表示します", "左のパネルを出します"],
       right: ["右のパネル（画像の共通設定・生成とチェック）を隠して、シーンを広く表示します", "右のパネルを出します"],
@@ -4812,7 +4822,7 @@ class App {
   }
 
   // SIDE PANEL WIDTHS AND HELP TEXT
-  // 左右のパネルを隠す・出す。ボタンの矢印は押したときに起きること（◀ 左 = 左を隠す、▶ 左 = 左を出す）
+  // 左右のパネルを畳む・開く。矢印はパネルが動く向き（左パネルの « で左へ畳む、細い帯の » で開く）
   applyPanels() {
     const ui = this.store.data.ui;
     const layout = document.querySelector(".layout");
@@ -4820,9 +4830,10 @@ class App {
       const hidden = side === "left" ? !!ui.hideLeft : !!ui.hideRight;
       layout.classList.toggle(`hide-${side}`, hidden);
       const btn = $(`btn-toggle-${side}`);
-      btn.setAttribute("aria-pressed", String(!hidden));
-      btn.textContent = L.panelToggle[side][hidden ? 1 : 0];
+      btn.setAttribute("aria-expanded", String(!hidden));
+      btn.querySelector(".arrow").textContent = L.panelToggle[side][hidden ? 1 : 0];
       btn.title = L.panelToggleTitle[side][hidden ? 1 : 0];
+      btn.setAttribute("aria-label", L.panelToggleTitle[side][hidden ? 1 : 0]);
     }
   }
 
