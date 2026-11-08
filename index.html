@@ -288,10 +288,20 @@ body.resizing * { user-select: none; }
   .scene-run-media { display: block; }
 }
 .preview-box { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
-.scene.custom-prompt .preview-details > summary { color: var(--accent); font-weight: 600; }
+.preview-details > summary { display: flex; align-items: center; gap: 8px; }
+.preview-details > summary .preview-label { flex: 1 1 auto; min-width: 0; }
+.preview-details > summary .custom-toggle { flex: none; margin-left: auto; font-weight: 400; }
+.scene.custom-prompt .preview-details > summary .preview-label { color: var(--accent); font-weight: 600; }
 .check-only { margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
 .check-only button { width: 100%; }
-.cast-checks { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.cast-checks { display: flex; flex-direction: column; gap: 6px; }
+.cast-block { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; opacity: .6; }
+.cast-block.on { opacity: 1; background: var(--head); }
+.cast-who { font-weight: 700; min-width: 0; }
+.cast-who .tag { flex: none; }
+.cast-parts { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.cast-parts .check.part { font-size: 11px; color: var(--muted); }
+.cast-block.on .cast-parts .check.part { color: var(--ink); }
 .scene-extra { border-top: 1px dashed var(--line); padding-top: 4px; }
 .scene-extra > summary { flex-wrap: wrap; }
 .scene-extra > summary > span { min-width: 0; }
@@ -1076,11 +1086,12 @@ install()
       settings: { sampler: "Euler a", scheduler: "Automatic", steps: 28, cfg: 6, seed: -1, clipSkip: 2 },
     },
     run: { perScene: 30, check: true, threshold: 70, strictScene: true, matchThreshold: 70, autoExtra: true, keepRejected: true, target: "all" },
-    cast: [{ id: "c1", name: "", prompt: "", note: "" }],
+    cast: [{ id: "c1", name: "", ident: "", body: "", outfit: "", note: "" }],
     locations: [],
     scenes: [],
   },
-  defaultScene: { title: "", text: "", cast: [], location: "", count: "", prompt: "", negative: "", perScene: null, width: null, height: null, seed: null, customPrompt: false, customText: "", customNegative: "" },
+  castParts: ["ident", "body", "outfit"],
+  defaultScene: { title: "", text: "", cast: [], location: "", count: "", prompt: "", negative: "", perScene: null, width: null, height: null, seed: null, customPrompt: false, customText: "", customNegative: "", castParts: {} },
   autoExtra: { maxRounds: 3 },
   anatomyScoreCap: 20,
   limits: { sceneCount: [1, 40], perScene: [1, 500], threshold: [0, 100], matchThreshold: [0, 100], steps: [1, 150], cfg: [1, 30], clipSkip: [1, 12], side: [256, 4096], temperature: [0, 2], maxTokens: [256, 131072] },
@@ -1142,8 +1153,10 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     synopsis: "あらすじ",
     castNote: "シーンでは A・B… の記号で参照します。「開く」でキャストの JSON を開くと、記号の順番どおりに中身だけが入れ替わります。",
     castName: "名前",
-    castPrompt: "見た目",
-    castPromptNote: "髪・目・服・キャラ名タグなど。<lora:名前:0.8> も書けます。",
+    castPartNames: { ident: "キャラクター名・作品", body: "身体的特徴", outfit: "服装" },
+    castPartShort: { ident: "名前・作品", body: "身体", outfit: "服装" },
+    castPartHints: { ident: "hatsune miku, vocaloid / <lora:名前:0.8>", body: "1girl, long hair, blue eyes, small breasts", outfit: "school uniform, red ribbon, black thighhighs" },
+    castPromptNote: "どれも <lora:名前:0.8> を書けます。シーンごとに使う・使わないを切り替えられます（使わない要素は、そのシーンのプロンプトに書きます）。",
     castNoteField: "メモ",
     castNotePlaceholder: "性格など（文章AIへの説明）",
     addCast: "＋ 登場人物を追加",
@@ -1230,7 +1243,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     basePrompt: "残りのプロンプト",
     basePromptNote: "品質タグを除いたプロンプトです。シーンや登場人物に使えます。",
     baseAddScene: "＋ シーンに追加",
-    baseToCast: "A の見た目に入れる",
+    baseToCast: "A の身体的特徴に入れる",
     baseUseSeed: "シードも引き継ぐ（ベースに近い絵から始める）",
     baseClear: "外す",
     baseReapply: "もう一度流し込む",
@@ -1247,7 +1260,9 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     pinTitle: "確定する（このシーンで使う1枚にする）。もう一度押すと確定を外し、点数で自動に選びます",
     sceneTitle: "シーンのタイトル",
     sceneText: "ナレーション（紙芝居で表示）",
-    sceneCast: "出る人",
+    sceneCast: "登場人物",
+    castPartEmpty: "（未入力）",
+    castUnnamed: "（名前なし）",
     sceneLocation: "場所",
     sceneNoLocation: "（指定なし: プロンプトに書く）",
     sceneCountTag: "人数タグ",
@@ -1262,10 +1277,10 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     sceneSeed: "シード",
     sceneSeedPlaceholder: "共通",
     overrides: { perScene: "{v}枚", size: "{w}×{h}", seed: "シード {v}", negative: "ネガティブ追加" },
-    previewPrompt: "実際に送るプロンプトを見る",
-    previewPromptCustom: "実際に送るプロンプト（このシーンは個別指定中）",
-    customPrompt: "送るプロンプトを個別指定する",
-    customPromptOffNote: "オンにすると下の文面を直接直せます（LoRA の強さをこのシーンだけ変えるときなど）。",
+    previewPrompt: "送信プロンプトを確認",
+    previewPromptCustom: "送信プロンプト（個別指定中）",
+    customPrompt: "送信プロンプトを個別指定",
+    customPromptOffNote: "右上の「送信プロンプトを個別指定」をオンにすると、この文面を直接直せます（LoRA の強さをこのシーンだけ変えるときなど）。",
     customPromptNote: "オンの間は、この文面をそのまま送ります。上の欄（シーンのプロンプト・登場人物・場所・品質タグ・末尾・ネガティブ）を変えても、ここには反映されません。",
     customPromptText: "送るプロンプト",
     customPromptNegative: "送るネガティブ",
@@ -1405,7 +1420,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
   help: [
     { title: "最初に接続する", items: ["「設定」→「はじめに」の手順で、画像AIに web-app-cors を入れ、文章AIで CORS をオンにします。", "右上の「文章AI」「画像AI」が緑になればつながっています。あとからAIを起動したときは「更新」を押します。"] },
     { title: "お気に入りの1枚から始める", items: ["左の「① ベース画像」に画像をドロップすると、その画像の設定を右の「画像の共通設定」に流し込みます。", "品質タグを除いた残りのプロンプトでシーン1を作るので、あとはプロンプトを変えて生成するだけです。", "品質タグ・ネガティブがすでに入っているときは上書きしません（画像の内容にするときは「もう一度流し込む」）。", "「シードも引き継ぐ」をオンにして「もう一度流し込む」と、シードもベースと同じにします。"] },
-    { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・出る人・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、まず全シーンの画像を指定枚数ずつ作り、作り終えたら文章AIが全シーンをまとめてチェックします。合格がないシーンだけ作り直して、またチェックします。"] },
+    { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・登場人物・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、まず全シーンの画像を指定枚数ずつ作り、作り終えたら文章AIが全シーンをまとめてチェックします。合格がないシーンだけ作り直して、またチェックします。"] },
     { title: "自分で組んだプロンプトを順番に作る", items: ["「＋ シーンを追加」でシーンを並べ、プロンプトを書きます。チェックを切れば、指定枚数を順番に作るだけの補助ツールになります。", "日本語のタイトル・ナレーションだけ書いて「✦ 文から書き直す」を押すと、そのシーンのプロンプトだけを文章AIが書きます。", "「このシーンだけの設定」で、枚数・大きさ（横長の構図だけ横向きなど）・シード（お気に入りのシードを固定）・追加のネガティブを変えられます。"] },
     { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルをクリックするとその1枚が下に大きく出て、★（確定）が付きます。★ をもう一度押すと確定を外し、点数で自動に選びます。サムネイル右上の ✕ で、その画像を消せます。", "サムネイルをダブルクリックすると詳細が開き、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
     { title: "同じシチュを別のキャラで作る", items: ["「保存 ▾」→「シチュを保存」でシーンを保存し、キャラごとに「キャストを保存」しておきます。", "「開く」でシチュとキャストを開くと、組み合わせを入れ替えて同じシチュを何組でも作れます。"] },
@@ -1496,7 +1511,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     baseKept: " {list}は入力済みなので、そのままにしました（画像の内容にするときは「もう一度流し込む」）",
     baseAppliedNone: "この画像には生成情報がありません。SD WebUI か ComfyUI で作った PNG をドロップしてください。",
     baseSceneAdded: "ベースのプロンプトでシーン {n} を追加しました。プロンプトを変えて生成してください。",
-    baseCastSet: "ベースのプロンプトを登場人物 A の見た目に入れました。",
+    baseCastSet: "ベースのプロンプトを登場人物 A の「身体的特徴」に入れました。",
     baseFailed: "画像を読み込めませんでした。PNG・JPEG・WebP の画像を選んでください。",
     shareOpening: "Prompt Reel を開いています…",
     sharePreparing: "Prompt Reel に渡す画像を用意しています…",
@@ -2264,6 +2279,17 @@ class ZipWriter {
   }
 }
 
+// ===== CHARACTER LOOK FOR THE TEXT AI =====
+// 文章AIに渡す登場人物の見た目。シーンを渡したときは、そのシーンでオフの要素を「シーンのプロンプトで書く」と伝える
+function lookOf(c, scene = null) {
+  const names = { ident: "character/series", body: "body", outfit: "outfit" };
+  const parts = USER_SETTINGS.castParts.map((k) => {
+    if (scene && !Doc.partOn(scene, c.id, k)) return `${names[k]}: (write it in this scene's prompt)`;
+    return c[k] ? `${names[k]}: ${c[k]}` : "";
+  }).filter(Boolean);
+  return parts.join("; ") || "-";
+}
+
 // ===== DROPPED FILES AND FOLDERS =====
 // ドロップされたファイルとフォルダの中身を { path, file } の一覧にする（フォルダは中まで読む）
 async function droppedFiles(dt) {
@@ -2710,7 +2736,7 @@ class PromptBuilder {
     return (scene.cast || []).map((id) => doc.cast.find((c) => c.id === id)).filter(Boolean);
   }
 
-  // 実際に送るプロンプト。シーンで「送るプロンプトを個別指定する」がオンなら、その文面をそのまま使う
+  // 実際に送るプロンプト。シーンで「送信プロンプトを個別指定」がオンなら、その文面をそのまま使う
   static build(doc, scene) {
     if (scene.customPrompt) return { prompt: scene.customText || "", negative: scene.customNegative || "" };
     return this.auto(doc, scene);
@@ -2721,7 +2747,7 @@ class PromptBuilder {
     const c = doc.common;
     const loc = doc.locations.find((l) => l.id === scene.location);
     return {
-      prompt: this.join([c.quality, scene.count, ...this.castOf(doc, scene).map((p) => p.prompt), scene.prompt, loc?.prompt, c.suffix], c.promptLayout),
+      prompt: this.join([c.quality, scene.count, ...this.castOf(doc, scene).map((p) => this.tidy(USER_SETTINGS.castParts.filter((k) => Doc.partOn(scene, p.id, k)).map((k) => p[k]))), scene.prompt, loc?.prompt, c.suffix], c.promptLayout),
       negative: this.join([c.negative, scene.negative], c.promptLayout),
     };
   }
@@ -2756,6 +2782,9 @@ class Doc {
       sc.customPrompt = !!s?.customPrompt;
       sc.id = typeof s?.id === "string" && s.id ? s.id : "s" + uid();
       sc.cast = Array.isArray(s?.cast) ? s.cast.filter((id) => castIds.has(id)) : [];
+      sc.castParts = Object.fromEntries(Object.entries(s?.castParts && typeof s.castParts === "object" ? s.castParts : {})
+        .filter(([id, v]) => castIds.has(id) && v && typeof v === "object")
+        .map(([id, v]) => [id, Object.fromEntries(USER_SETTINGS.castParts.filter((k) => typeof v[k] === "boolean").map((k) => [k, v[k]]))]));
       if (!locIds.has(sc.location)) sc.location = "";
       sc.perScene = Number(s?.perScene) > 0 ? Math.round(Number(s.perScene)) : null;
       const side = (v) => (Number(v) > 0 ? clamp(Math.round(Number(v)), USER_SETTINGS.limits.side) : null);
@@ -2772,9 +2801,19 @@ class Doc {
     return Object.fromEntries(keys.filter((k) => typeof src[k] === "string").map((k) => [k, src[k]]));
   }
 
+  // 登場人物（prefix "c"）は「キャラクター名・作品」「身体的特徴」「服装」に分けて持つ。場所（"l"）は prompt ひとつ。
+  // 以前の登場人物の「見た目」（prompt）は「身体的特徴」に入れる
   static person(p, prefix = "c") {
     const o = p && typeof p === "object" ? p : {};
-    return { id: typeof o.id === "string" && o.id ? o.id : prefix + uid(), name: String(o.name || ""), prompt: String(o.prompt || ""), note: String(o.note || "") };
+    const id = typeof o.id === "string" && o.id ? o.id : prefix + uid();
+    if (prefix !== "c") return { id, name: String(o.name || ""), prompt: String(o.prompt || ""), note: String(o.note || "") };
+    const body = String(o.body ?? "") || (o.ident == null && o.outfit == null ? String(o.prompt || "") : "");
+    return { id, name: String(o.name || ""), ident: String(o.ident || ""), body, outfit: String(o.outfit || ""), note: String(o.note || "") };
+  }
+
+  // 登場人物の各要素（キャラクター名・作品 / 身体的特徴 / 服装）をそのシーンで使うか。書いていなければ使う
+  static partOn(scene, castId, key) {
+    return scene.castParts?.[castId]?.[key] !== false;
   }
 
   static serialize(doc) {
@@ -2814,13 +2853,13 @@ class Doc {
   }
 
   static castFile(doc) {
-    return { format: USER_SETTINGS.castFormat, version: USER_SETTINGS.projectVersion, cast: doc.cast.map(({ name, prompt, note }) => ({ name, prompt, note })) };
+    return { format: USER_SETTINGS.castFormat, version: USER_SETTINGS.projectVersion, cast: doc.cast.map(({ name, ident, body, outfit, note }) => ({ name, ident, body, outfit, note })) };
   }
 
   static swapCast(doc, incoming) {
     const list = (Array.isArray(incoming) ? incoming : []).map((c) => this.person(c));
     list.forEach((c, i) => {
-      if (i < doc.cast.length) Object.assign(doc.cast[i], { name: c.name, prompt: c.prompt, note: c.note });
+      if (i < doc.cast.length) Object.assign(doc.cast[i], { name: c.name, ident: c.ident, body: c.body, outfit: c.outfit, note: c.note });
       else doc.cast.push({ ...c, id: "c" + uid() });
     });
     return list.length;
@@ -2978,7 +3017,7 @@ class Judge {
 // ===== STORY WRITER (ROUGH IDEA -> SCENES) =====
 class StoryWriter {
   static castLines(doc) {
-    return doc.cast.map((c, i) => `- id: ${c.id} (${letter(i)}) / name: ${c.name || "(unnamed)"} / notes: ${c.note || "-"} / look: ${c.prompt || "-"}`).join("\n") || "(none)";
+    return doc.cast.map((c, i) => `- id: ${c.id} (${letter(i)}) / name: ${c.name || "(unnamed)"} / notes: ${c.note || "-"} / look: ${lookOf(c)}`).join("\n") || "(none)";
   }
 
   static locationLines(doc) {
@@ -3022,7 +3061,7 @@ class StoryWriter {
     const text = [
       `Scene title: ${scene.title || "-"}`,
       `Narration: ${scene.text || "-"}`,
-      `Characters in the scene:\n${cast.map((c) => `- ${c.name || "(unnamed)"} / notes: ${c.note || "-"} / look: ${c.prompt || "-"}`).join("\n") || "(none)"}`,
+      `Characters in the scene:\n${cast.map((c) => `- ${c.name || "(unnamed)"} / notes: ${c.note || "-"} / look: ${lookOf(c, scene)}`).join("\n") || "(none)"}`,
       `Location: ${loc ? `${loc.name} / ${loc.prompt}` : "(none: describe the place in the prompt)"}`,
       USER_SETTINGS.styleRules[doc.common.style] || USER_SETTINGS.styleRules.tags,
     ].join("\n\n");
@@ -3812,7 +3851,9 @@ class LeftPanel {
     });
     return h("div", { class: "item" },
       h("div", { class: "item-head" }, h("span", { class: "tag", text: isCast ? letter(i) : `${i + 1}` }), this.nameInput(p, isCast ? L.castName : L.locationName), remove),
-      Form.prop(isCast ? L.castPrompt : L.locationPrompt, Form.text(p, "prompt", () => this.changed(), { rows: 2 }), { top: true, note: isCast ? L.castPromptNote : null }),
+      ...(isCast
+        ? USER_SETTINGS.castParts.map((k) => Form.field(L.castPartNames[k], Form.text(p, k, () => this.changed(), { rows: 2, placeholder: L.castPartHints[k], "data-key": k })))
+        : [Form.prop(L.locationPrompt, Form.text(p, "prompt", () => this.changed(), { rows: 2 }), { top: true })]),
       Form.prop(L.castNoteField, Form.text(p, "note", () => this.changed(), { placeholder: L.castNotePlaceholder })));
   }
 
@@ -3827,6 +3868,7 @@ class LeftPanel {
     const doc = this.app.doc;
     return Form.section("cast", L.secCast, [
       h("p", { class: "note", text: L.castNote }),
+      h("p", { class: "note", text: L.castPromptNote }),
       ...doc.cast.map((p, i) => this.personItem(doc.cast, p, i, "cast")),
       h("button", { text: L.addCast, onclick: () => { doc.cast.push(Doc.person({}, "c")); this.changed(true); this.render(); } }),
     ]);
@@ -4096,7 +4138,22 @@ class SceneBoard {
     const stat = h("span", { class: "scene-stat" });
     const media = h("div", { class: "scene-media" });
     const preview = h("div", { class: "preview-box" });
-    const previewSummary = h("summary", {});
+    const previewLabel = h("span", { class: "preview-label" });
+    // 「送信プロンプトを個別指定」は見出しの行の右に置く（押し間違いを減らすため本文から離す）。
+    // summary の中のスイッチを押しても、開け閉めはしない（ラベルは操作できる要素なので summary の動作が起きない）
+    const customToggle = Form.check(scene, "customPrompt", L.customPrompt, (k, on) => {
+      if (on && !scene.customText && !scene.customNegative) {
+        const auto = PromptBuilder.auto(doc, scene);
+        scene.customText = auto.prompt;
+        scene.customNegative = auto.negative;
+      }
+      if (on) previewDetails.open = true;
+      app.docChanged(false);
+      preview.dataset.mode = "";
+      this.updatePreview(scene.id);
+    });
+    customToggle.classList.add("custom-toggle");
+    const previewSummary = h("summary", {}, previewLabel, customToggle);
     const previewDetails = h("details", { class: "preview-details", open: !!scene.customPrompt, ontoggle: () => AutoGrow.fitAll(preview) }, previewSummary, preview);
     const move = (d) => {
       const list = doc.scenes;
@@ -4105,13 +4162,31 @@ class SceneBoard {
       [list[index], list[j]] = [list[j], list[index]];
       app.docChanged(true);
     };
+    // 登場人物: 1人ずつ区切り、出るかどうかと、要素（名前・作品 / 身体 / 服装）ごとに使うかを切り替える。出ないときは要素も使わない
     const castBox = h("div", { class: "cast-checks" }, ...doc.cast.map((c, i) => {
-      const cb = h("input", { type: "checkbox", checked: scene.cast.includes(c.id) });
+      const on = scene.cast.includes(c.id);
+      const cb = h("input", { type: "checkbox", checked: on, "data-cast": c.id });
+      const parts = USER_SETTINGS.castParts.map((k) => {
+        const pc = h("input", { type: "checkbox", checked: on && Doc.partOn(scene, c.id, k), disabled: !on, "data-part": k });
+        pc.addEventListener("change", () => {
+          scene.castParts = { ...scene.castParts, [c.id]: { ...(scene.castParts?.[c.id] || {}), [k]: pc.checked } };
+          changed();
+        });
+        return h("label", { class: "check part", title: `${L.castPartNames[k]}: ${c[k] || L.castPartEmpty}` }, pc, L.castPartShort[k]);
+      });
+      const block = h("div", { class: `cast-block${on ? " on" : ""}` },
+        h("label", { class: "check cast-who" }, cb, h("span", { class: "tag", text: letter(i) }), c.name || L.castUnnamed),
+        h("div", { class: "cast-parts" }, ...parts));
       cb.addEventListener("change", () => {
         scene.cast = doc.cast.map((x) => x.id).filter((id) => (id === c.id ? cb.checked : scene.cast.includes(id)));
+        block.classList.toggle("on", cb.checked);
+        for (const el of block.querySelectorAll("[data-part]")) {
+          el.disabled = !cb.checked;
+          el.checked = cb.checked && Doc.partOn(scene, c.id, el.dataset.part);
+        }
         changed();
       });
-      return h("label", { class: "check" }, cb, `${letter(i)} ${c.name || ""}`.trim());
+      return block;
     }));
     const locEntries = [["", L.sceneNoLocation], ...doc.locations.map((l, i) => [l.id, `${i + 1}. ${l.name || "—"}`])];
     const countIn = Form.text(scene, "count", changed);
@@ -4139,7 +4214,7 @@ class SceneBoard {
           previewDetails,
           h("button", { class: "primary scene-run", text: L.runScene, disabled: app.runner.busy, onclick: () => app.run([scene.id]) })),
         media));
-    this.cards.set(scene.id, { el, stat, media, preview, previewSummary, promptIn });
+    this.cards.set(scene.id, { el, stat, media, preview, previewLabel, promptIn });
     this.updatePreview(scene.id);
     this.updateImages(scene.id);
     return el;
@@ -4154,27 +4229,17 @@ class SceneBoard {
     const base = Runner.seedBase(doc, scene);
     const seed = Number(base) >= 0 ? fmt(L.previewSeedFrom, { v: base }) : L.previewSeedRandom;
     const meta = fmt(L.previewMeta, { w: size.width, h: size.height, seed, n: Doc.perScene(doc, scene) });
-    card.previewSummary.textContent = scene.customPrompt ? L.previewPromptCustom : L.previewPrompt;
+    card.previewLabel.textContent = scene.customPrompt ? L.previewPromptCustom : L.previewPrompt;
     card.el.classList.toggle("custom-prompt", !!scene.customPrompt);
     // 個別指定の入力中は、打っている欄を作り直さない（上の行だけ更新する）
     const metaEl = card.preview.querySelector(".preview-meta");
     if (scene.customPrompt && card.preview.dataset.mode === "custom" && metaEl) { metaEl.textContent = meta; return; }
     const app = this.app;
     const changed = () => { app.docChanged(false); };
-    const toggle = Form.check(scene, "customPrompt", L.customPrompt, (k, on) => {
-      if (on && !scene.customText && !scene.customNegative) {
-        const auto = PromptBuilder.auto(doc, scene);
-        scene.customText = auto.prompt;
-        scene.customNegative = auto.negative;
-      }
-      app.docChanged(false);
-      card.preview.dataset.mode = "";
-      this.updatePreview(sceneId);
-    });
     if (!scene.customPrompt) {
       const p = PromptBuilder.auto(doc, scene);
       card.preview.dataset.mode = "auto";
-      card.preview.replaceChildren(toggle, h("p", { class: "note", text: L.customPromptOffNote }), h("pre", { class: "preview-prompt" }, h("span", { class: "preview-meta", text: meta }), `\n\n${p.prompt}\n\nNegative: ${p.negative}`));
+      card.preview.replaceChildren(h("p", { class: "note", text: L.customPromptOffNote }), h("pre", { class: "preview-prompt" }, h("span", { class: "preview-meta", text: meta }), `\n\n${p.prompt}\n\nNegative: ${p.negative}`));
       return;
     }
     const pos = Form.text(scene, "customText", changed, { rows: 4, "data-key": "customText" });
@@ -4189,7 +4254,6 @@ class SceneBoard {
     } });
     card.preview.dataset.mode = "custom";
     card.preview.replaceChildren(
-      toggle,
       h("p", { class: "note", text: L.customPromptNote }),
       h("pre", { class: "preview-prompt preview-meta", text: meta }),
       Form.field(L.customPromptText, pos),
@@ -5394,7 +5458,7 @@ class App {
     const base = this.doc.base;
     if (!base) return;
     if (!this.doc.cast.length) this.doc.cast.push(Doc.person({}, "c"));
-    this.doc.cast[0].prompt = base.prompt;
+    this.doc.cast[0].body = base.prompt;
     this.docChanged(true);
     this.left.render();
     this.notice(M.baseCastSet, "ok");
