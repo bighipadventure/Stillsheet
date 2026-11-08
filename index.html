@@ -220,9 +220,13 @@ body.resizing * { user-select: none; }
   .splitter { display: none; }
   .side-scroll, .insp-scroll, .center-scroll { overflow: visible; }
   .pills .pill-app { display: none; }
-  /* 1列表示ではページ全体がスクロールするので、進み具合の帯を画面の上に固定する（高さは --status-h で下の中身をずらす） */
-  body { padding-top: var(--status-h, 0px); }
-  .status-panel { position: fixed; top: 0; left: 0; right: 0; z-index: 40; box-shadow: 0 2px 8px rgb(0 0 0 / .12); }
+  /* 1列表示ではページ全体がスクロールするので、上のバー（タブ）とその下の進み具合の帯を画面の上に固定する。
+     固定したぶん（バーの高さ＋帯の高さ --status-h）だけ下の中身をずらす。バーに入りきらないボタンは横にスクロールして見る */
+  body { padding-top: calc(var(--topbar-h) + var(--status-h, 0px)); }
+  .topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 41; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+  .topbar > *, .topbar .pills, .topbar .pill { flex: none; }
+  .topbar .pills { overflow: visible; }
+  .status-panel { position: fixed; top: var(--topbar-h); left: 0; right: 0; z-index: 40; box-shadow: 0 2px 8px rgb(0 0 0 / .12); }
 }
 
 /* ===== STATUS PANEL (PHASE, PROGRESS AT THE TOP RIGHT, ETA) ===== */
@@ -276,10 +280,13 @@ body.resizing * { user-select: none; }
 .scene-stat b { color: var(--ok); }
 .scene-body { display: grid; grid-template-columns: minmax(260px, 400px) minmax(0, 1fr); gap: 12px; padding: 10px; }
 .scene-fields { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.scene-run { margin-top: auto; width: 100%; }
+.scene-run-media { display: none; margin-top: 0; }
 @container (max-width: 760px) {
   .scene-body { grid-template-columns: 1fr; }
+  .scene-fields > .scene-run { display: none; }
+  .scene-run-media { display: block; }
 }
-.scene-run { margin-top: auto; width: 100%; }
 .preview-box { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
 .scene.custom-prompt .preview-details > summary { color: var(--accent); font-weight: 600; }
 .check-only { margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
@@ -308,11 +315,17 @@ body.resizing * { user-select: none; }
 .thumb .badge.ok { background: var(--ok); color: var(--on-status); }
 .thumb .badge.ng { background: var(--danger); color: var(--on-status); }
 .thumb.pending::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(255, 255, 255, .08) 6px 12px); pointer-events: none; }
-.thumb .pin { position: absolute; right: 2px; top: 2px; min-height: 22px; width: 24px; padding: 0; border: none; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 13px; opacity: 0; z-index: 1; }
+.thumb .pin { position: absolute; left: 2px; top: 2px; min-height: 22px; width: 24px; padding: 0; border: none; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 13px; opacity: 0; z-index: 1; }
 .thumb:hover .pin, .thumb .pin:focus-visible { opacity: 1; }
 .thumb.picked .pin { opacity: 1; color: var(--lamp); }
 .thumb.pinned .pin { background: var(--lamp); color: #000; }
 .thumb .pin:hover:not(:disabled) { background: rgba(0, 0, 0, .8); color: var(--lamp); border: none; }
+.thumb .del { position: absolute; right: 2px; top: 2px; min-height: 22px; width: 22px; padding: 0; border: none; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 12px; line-height: 1; opacity: 0; z-index: 1; }
+.thumb:hover .del, .thumb .del:focus-visible { opacity: 1; }
+.thumb .del:hover { background: var(--danger); color: #fff; border: none; }
+@media (hover: none) { .thumb .del, .thumb .pin { opacity: 1; } }
+.pick-state { align-self: center; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: var(--head); color: var(--muted); border: 1px solid var(--line); }
+.pick-state.on { background: var(--lamp); color: #000; border-color: var(--lamp); }
 
 /* ===== SET STRIP (ONE IMAGE PER SCENE) ===== */
 .set-strip { border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--surface); margin-bottom: 12px; }
@@ -331,7 +344,7 @@ body.resizing * { user-select: none; }
 .set-item .cap b { color: var(--ink); }
 
 /* ===== MENU ===== */
-.menu-list { position: fixed; z-index: 20; width: min(var(--menu-w), 100vw - 16px); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--radius-l); box-shadow: 0 8px 24px rgba(0, 0, 0, .3); padding: 4px; display: flex; flex-direction: column; }
+.menu-list { position: fixed; z-index: 60; width: min(var(--menu-w), 100vw - 16px); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--radius-l); box-shadow: 0 8px 24px rgba(0, 0, 0, .3); padding: 4px; display: flex; flex-direction: column; }
 .menu-list button { justify-content: flex-start; border: none; background: transparent; text-align: left; flex-direction: column; align-items: flex-start; gap: 0; padding: 6px 10px; }
 .menu-list button small { color: var(--muted); font-weight: 400; white-space: normal; line-height: 1.4; }
 
@@ -1169,7 +1182,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     addAtEnd: "一番下に",
     addAtTop: "先頭に",
     addAtAfter: "シーン {n} のあとに",
-    thumbHint: "クリックで採用（★）・ダブルクリックで詳細",
+    thumbHint: "クリックで確定（★）・ダブルクリックで詳細・右上の ✕ で消す",
     insertLora: "LoRA",
     insertLoraNote: "選ぶと「末尾」に <lora:名前:1> を足し、全シーンに効きます。強さは「末尾」の数字を直してください。",
     keepCurrent: "（いまの設定のまま）",
@@ -1221,16 +1234,16 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     baseClear: "外す",
     baseReapply: "もう一度流し込む",
     setTitle: "セット（各シーンの1枚）",
-    setNote: "点数がいちばん高い合格画像を自動で選びます。サムネイルをクリックすると、その1枚に固定します。",
-    setAuto: "自動",
-    setPinned: "★手動",
+    setNote: "点数がいちばん高い合格画像を自動で選びます。サムネイルをクリックすると、その1枚で確定します。",
+    setAuto: "未確定（点数で自動）",
+    setPinned: "★確定",
     setEmpty: "まだ\nありません",
     setItemTitle: "#{n} {title}\n{state}\n{text}",
     setStateNone: "選べる画像がまだありません",
     setStatePicked: "{no}枚目・{score}・{mode}",
     setPost: "Prompt Reel に投稿",
     setDownload: "ダウンロード（ZIP）",
-    pinTitle: "このシーンの1枚にする（もう一度押すと自動選出に戻す）",
+    pinTitle: "確定する（このシーンで使う1枚にする）。もう一度押すと確定を外し、点数で自動に選びます",
     sceneTitle: "シーンのタイトル",
     sceneText: "ナレーション（紙芝居で表示）",
     sceneCast: "出る人",
@@ -1276,8 +1289,11 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     pickOpen: "クリックで詳細を開く",
     emptyBoard: "シーンがありません。\n左の「② ストーリー」にざっくりした指示を書いて「✦ ストーリーを組み立てる」を押すか、「＋ シーンを追加」で自分で組みます。\nお気に入りの画像を「① ベース画像」に入れると、その設定でシーン1を作ります。",
     untitled: "（無題の紙芝居）",
-    viewerPick: "★ このシーンの1枚にする",
-    viewerUnpick: "自動選出に戻す",
+    viewerPick: "★ 確定する",
+    viewerUnpick: "確定を外す",
+    viewerPicked: "★ 確定（このシーンの1枚）",
+    viewerNotPicked: "未確定",
+    thumbDelete: "この画像を消す",
     viewerOk: "合格にする",
     viewerNg: "不合格にする",
     viewerAuto: "判定を自動に戻す",
@@ -1361,7 +1377,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
       ],
       pick: "セットに入る1枚",
       picks: [
-        "★ で固定した画像があれば、それを使います",
+        "★ で確定した画像があれば、それを使います",
         "なければ、合格の中でいちばん点数の高い画像（同点なら先に作ったほう）",
         "チェックをオフにしているときは、不合格にしていない最初の画像",
       ],
@@ -1390,7 +1406,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     { title: "お気に入りの1枚から始める", items: ["左の「① ベース画像」に画像をドロップすると、その画像の設定を右の「画像の共通設定」に流し込みます。", "品質タグを除いた残りのプロンプトでシーン1を作るので、あとはプロンプトを変えて生成するだけです。", "品質タグ・ネガティブがすでに入っているときは上書きしません（画像の内容にするときは「もう一度流し込む」）。", "「シードも引き継ぐ」をオンにして「もう一度流し込む」と、シードもベースと同じにします。"] },
     { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・出る人・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、まず全シーンの画像を指定枚数ずつ作り、作り終えたら文章AIが全シーンをまとめてチェックします。合格がないシーンだけ作り直して、またチェックします。"] },
     { title: "自分で組んだプロンプトを順番に作る", items: ["「＋ シーンを追加」でシーンを並べ、プロンプトを書きます。チェックを切れば、指定枚数を順番に作るだけの補助ツールになります。", "日本語のタイトル・ナレーションだけ書いて「✦ 文から書き直す」を押すと、そのシーンのプロンプトだけを文章AIが書きます。", "「このシーンだけの設定」で、枚数・大きさ（横長の構図だけ横向きなど）・シード（お気に入りのシードを固定）・追加のネガティブを変えられます。"] },
-    { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルをクリックするとその1枚が下に大きく出て、自動で ★（固定）が付きます。★ をもう一度押すと自動に戻ります。", "サムネイルをダブルクリックすると詳細が開き、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
+    { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルをクリックするとその1枚が下に大きく出て、★（確定）が付きます。★ をもう一度押すと確定を外し、点数で自動に選びます。サムネイル右上の ✕ で、その画像を消せます。", "サムネイルをダブルクリックすると詳細が開き、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
     { title: "同じシチュを別のキャラで作る", items: ["「保存 ▾」→「シチュを保存」でシーンを保存し、キャラごとに「キャストを保存」しておきます。", "「開く」でシチュとキャストを開くと、組み合わせを入れ替えて同じシチュを何組でも作れます。"] },
     { title: "残す・共有する", items: ["作業の状態はブラウザに残りません。閉じる前に「保存 ▾」で保存してください。", "「セット」欄の「ダウンロード（ZIP）」か「Prompt Reel に投稿」で、各シーンの1枚を残します。", "「▶ 紙芝居」で、各シーンの1枚とナレーションを順番に全画面で見られます（← → キー・自動再生）。"] },
   ],
@@ -3768,9 +3784,16 @@ class LeftPanel {
       },
     });
     return h("div", { class: "item" },
-      h("div", { class: "item-head" }, h("span", { class: "tag", text: isCast ? letter(i) : `${i + 1}` }), Form.text(p, "name", () => this.changed(true), { placeholder: isCast ? L.castName : L.locationName }), remove),
+      h("div", { class: "item-head" }, h("span", { class: "tag", text: isCast ? letter(i) : `${i + 1}` }), this.nameInput(p, isCast ? L.castName : L.locationName), remove),
       Form.prop(isCast ? L.castPrompt : L.locationPrompt, Form.text(p, "prompt", () => this.changed(), { rows: 2 }), { top: true, note: isCast ? L.castPromptNote : null }),
       Form.prop(L.castNoteField, Form.text(p, "note", () => this.changed(), { placeholder: L.castNotePlaceholder })));
+  }
+
+  // 名前は打つたびにシーンを描き直すと重いので、入力欄から離れたとき（Enter を含む）にシーンへ反映する
+  nameInput(p, placeholder) {
+    const el = Form.text(p, "name", () => this.changed(false), { placeholder });
+    el.addEventListener("change", () => this.changed(true));
+    return el;
   }
 
   castSection() {
@@ -4167,7 +4190,7 @@ class SceneBoard {
     const total = scene ? Doc.perScene(app.doc, scene) : 0;
     card.stat.innerHTML = fmt(L.statLine, { total: `${c.total}/${total}`, good: c.good, ng: c.ng, pending: c.pending }) + (picked ? esc(fmt(L.statPicked, { n: list.indexOf(picked) + 1 })) : "");
     if (!list.length) {
-      card.media.replaceChildren(h("div", { class: "thumbs-empty", text: L.noImages }));
+      card.media.replaceChildren(h("div", { class: "thumbs-empty", text: L.noImages }), this.mediaRunButton(sceneId));
       return;
     }
     const thumbs = h("div", { class: "thumbs" }, ...list.map((img, i) => {
@@ -4181,9 +4204,15 @@ class SceneBoard {
       return h("div", { class: cls, title: tip, role: "button", tabindex: 0, "data-image": img.id, onclick: select, ondblclick: () => app.viewer.open(sceneId, img.id), onkeydown: (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); select(); } } },
         h("img", { src: img.thumb, alt: "", loading: "lazy" }),
         h("span", { class: `badge ${v === true ? "ok" : v === false ? "ng" : ""}`, text: badge }),
-        h("button", { class: "pin", text: "★", title: L.pinTitle, "aria-pressed": String(pinned), disabled: !img.blob, onclick: (e) => { e.stopPropagation(); app.togglePin(sceneId, img.id); app.sceneChanged(sceneId); } }));
+        h("button", { class: "pin", text: "★", title: L.pinTitle, "aria-pressed": String(pinned), disabled: !img.blob, onclick: (e) => { e.stopPropagation(); app.togglePin(sceneId, img.id); app.sceneChanged(sceneId); } }),
+        h("button", { class: "del", text: "✕", title: L.thumbDelete, "aria-label": `#${i + 1} ${L.thumbDelete}`, ondblclick: (e) => e.stopPropagation(), onclick: (e) => { e.stopPropagation(); app.deleteImage(sceneId, img.id); } }));
     }));
-    card.media.replaceChildren(thumbs, this.pickView(sceneId, list, picked));
+    card.media.replaceChildren(thumbs, this.mediaRunButton(sceneId), this.pickView(sceneId, list, picked));
+  }
+
+  // 1列に並ぶとき（狭い画面）だけ出す「このシーンを生成」。サムネイルと大きく出る1枚の間に置く。広いときは入力欄の下のものを使う
+  mediaRunButton(sceneId) {
+    return h("button", { class: "primary scene-run scene-run-media", text: L.runScene, disabled: this.app.runner.busy, onclick: () => this.app.run([sceneId]) });
   }
 
   selectImage(sceneId, imageId) {
@@ -4336,7 +4365,8 @@ class Viewer {
       c?.missing?.length ? h("ul", { class: "issues" }, ...c.missing.map((t) => h("li", { text: t }))) : null,
       !img.blob ? h("div", { class: "msg warn", text: L.viewerNoFull }) : null,
       h("div", { class: "actions" },
-        h("button", { class: "primary", text: pinned ? L.viewerUnpick : L.viewerPick, disabled: !img.blob, onclick: redo(() => app.togglePin(this.sceneId, img.id)) }),
+        h("span", { class: `pick-state${pinned ? " on" : ""}`, text: pinned ? L.viewerPicked : L.viewerNotPicked }),
+        h("button", { class: pinned ? "" : "primary", text: pinned ? L.viewerUnpick : L.viewerPick, disabled: !img.blob, onclick: redo(() => app.togglePin(this.sceneId, img.id)) }),
         h("button", { text: L.viewerOk, onclick: redo(() => { img.manual = "ok"; }) }),
         h("button", { text: L.viewerNg, onclick: redo(() => { img.manual = "ng"; }) }),
         img.manual ? h("button", { text: L.viewerAuto, onclick: redo(() => { img.manual = null; }) }) : null),
