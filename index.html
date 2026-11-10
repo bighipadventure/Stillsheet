@@ -4,74 +4,101 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Stillsheet</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎴</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><filter id='mono'><feColorMatrix type='saturate' values='0'/></filter><text y='.9em' font-size='90' filter='url(%23mono)'>🎴</text></svg>">
 <style>
-/* ===== TOKENS ===== */
+/* ===== TOKENS =====
+   Astryx（Meta）neutral テーマの配色・角丸・影。モノクロ基調で、黒（ダークでは白）を主ボタンに使う */
 :root {
-  --bg: #e9e9e9;
-  --surface: #f5f5f5;
+  --bg: #f1f1f1;
+  --surface: #ffffff;
   --surface-2: #ffffff;
-  --head: #e1e1e1;
-  --ink: #2c2c2c;
-  --muted: #5a5a5a;
-  --line: #d0d0d0;
-  --line-strong: #a8a8a8;
-  --control: #ffffff;
-  --control-hover: #ececec;
-  --accent: #0d66d0;
-  --accent-hover: #0a58b5;
+  --head: #f7f7f7;
+  --section-head: #f7f7f7;
+  --ink: #000000;
+  --muted: #474747;
+  --disabled-ink: #919191;
+  --line: rgba(0, 0, 0, .08);
+  --line-strong: #d4d4d4;
+  --control: rgba(0, 0, 0, .06);
+  --control-hover: rgba(0, 0, 0, .11);
+  --accent: #1b1b1b;
+  --accent-hover: #3a3a3a;
   --on-accent: #ffffff;
-  --accent-text: #0d66d0;
-  --accent-soft: #dde9f8;
-  --on-accent-soft: #0a4a99;
+  --accent-text: #1b1b1b;
+  --accent-soft: #e2e2e2;
+  --on-accent-soft: #1b1b1b;
+  --link: #0067ce;
+  --focus: #1b1b1b;
+  --knob: #ffffff;
   --lamp: #e68619;
-  --danger: #c9252d;
-  --danger-soft: #fbe6e6;
-  --ok: #268e6c;
-  --ok-soft: #dcf2ea;
+  --danger: #c0262c;
+  --danger-soft: #ffe1dd;
+  --danger-fill: #c9303a;
+  --danger-fill-hover: #a8222b;
+  --on-danger: #ffffff;
+  --ok: #2f7d33;
+  --ok-soft: #bce0bb;
   --on-status: #ffffff;
-  --warn-soft: #fdf0dc;
-  --on-warn-soft: #5c3a00;
+  --warn-soft: #fae19e;
+  --on-warn-soft: #4b3900;
   --stage: #3a3a3a;
-  --chip: #ececec;
-  --radius-s: 4px;
-  --radius-l: 6px;
-  --h-control: 28px;
+  --chip: #ebebeb;
+  --radius-xs: 6px;
+  --radius-s: 10px;
+  --radius-l: 12px;
+  --shadow-low: 0 2px 4px rgba(0, 0, 0, .05), 0 4px 8px rgba(0, 0, 0, .10), inset 0 0 0 1px rgba(0, 0, 0, .05);
+  --shadow-high: 0 4px 6px rgba(0, 0, 0, .10), 0 12px 24px rgba(0, 0, 0, .15), inset 0 0 0 1px rgba(0, 0, 0, .05);
+  --backdrop: rgba(0, 0, 0, .5);
+  --h-control: 32px;
   --run-height: 36px;
-  --topbar-h: 40px;
+  --topbar-h: 48px;
   --thumb: 92px;
   --menu-w: 320px;
-  --font: "Source Han Sans JP", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
   --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --font: "Figtree", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --num-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   color-scheme: light;
   box-sizing: border-box;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #1b1b1b;
-    --surface: #2c2c2c;
-    --surface-2: #232323;
-    --head: #252525;
-    --ink: #e8e8e8;
-    --muted: #ababab;
-    --line: #3e3e3e;
-    --line-strong: #5a5a5a;
-    --control: #383838;
-    --control-hover: #454545;
-    --accent-hover: #1473e6;
-    --accent-text: #8cc8ff;
-    --accent-soft: #1d3554;
-    --on-accent-soft: #cfe3fb;
+    --surface: #262626;
+    --surface-2: #1b1b1b;
+    --head: #2e2e2e;
+    --section-head: #2e2e2e;
+    --ink: #ffffff;
+    --muted: #c6c6c6;
+    --disabled-ink: #7a7a7a;
+    --line: rgba(255, 255, 255, .10);
+    --line-strong: #525252;
+    --control: rgba(255, 255, 255, .10);
+    --control-hover: rgba(255, 255, 255, .16);
+    --accent: #f1f1f1;
+    --accent-hover: #ffffff;
+    --on-accent: #111111;
+    --accent-text: #f1f1f1;
+    --accent-soft: #303030;
+    --on-accent-soft: #f1f1f1;
+    --link: #a1caff;
+    --focus: #f1f1f1;
+    --knob: #262626;
     --lamp: #f0a63a;
-    --danger: #ff8a8a;
-    --danger-soft: #3d1c1c;
-    --ok: #6fd6a8;
-    --ok-soft: #173a2d;
-    --on-status: #10201a;
-    --warn-soft: #3a2c10;
-    --on-warn-soft: #ffe0a8;
+    --danger: #ffaea7;
+    --danger-soft: #5b2b28;
+    --danger-fill: #ff705d;
+    --danger-fill-hover: #ff8f80;
+    --on-danger: #111111;
+    --ok: #90ca90;
+    --ok-soft: #2b422b;
+    --on-status: #111111;
+    --warn-soft: #453a1c;
+    --on-warn-soft: #eec448;
     --stage: #121212;
-    --chip: #383838;
+    --chip: #333333;
+    --shadow-low: 0 2px 4px rgba(0, 0, 0, .25), 0 4px 8px rgba(0, 0, 0, .40), inset 0 0 0 1px rgba(255, 255, 255, .08);
+    --shadow-high: 0 4px 6px rgba(0, 0, 0, .50), 0 12px 24px rgba(0, 0, 0, .70), inset 0 0 0 1px rgba(255, 255, 255, .08);
+    --backdrop: rgba(0, 0, 0, .8);
     color-scheme: dark;
   }
 }
@@ -455,6 +482,149 @@ dialog#show[open] { display: flex; flex-direction: column; }
 .show-nav { flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; background: #111; }
 .show-nav button { background: #222; color: #fff; border-color: #444; }
 .show-nav .count { min-width: 70px; text-align: center; font-size: 12px; color: #bbb; }
+
+/* ===== THEME: ASTRYX ===== */
+body { font-variant-emoji: text; -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.icon-search::before { content: ""; width: 15px; height: 15px; flex: none; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") center / contain no-repeat; }
+button {
+  border: 1px solid transparent; background: var(--control); border-radius: var(--radius-s); padding: 3px 12px;
+  font-size: 13px; font-weight: 500; white-space: nowrap; transition: background-color .175s, border-color .175s, color .175s;
+}
+button:hover:not(:disabled) { background: var(--control-hover); border-color: transparent; }
+button:active:not(:disabled) { transform: scale(.98); }
+button:disabled { opacity: .4; }
+button.primary, button.run { font-weight: 600; }
+button.danger { color: var(--on-danger); border-color: var(--danger-fill); background: var(--danger-fill); font-weight: 600; }
+button.danger:hover:not(:disabled) { background: var(--danger-fill-hover); border-color: var(--danger-fill-hover); color: var(--on-danger); }
+button.big { letter-spacing: .02em; }
+.help-btn { border-color: transparent; background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+input[type="text"], input[type="url"], input[type="number"], input[type="password"], input:not([type]), select, textarea { padding: 4px 10px; transition: border-color .175s, box-shadow .175s; }
+input:hover:not(:disabled), select:hover:not(:disabled), textarea:hover:not(:disabled) { border-color: #919191; }
+input:focus, select:focus, textarea:focus { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
+textarea { padding: 6px 10px; }
+input[type="checkbox"] { width: 36px; transition: background .175s; }
+input[type="checkbox"]::before { background: var(--knob); box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .175s cubic-bezier(.24, 1, .4, 1); }
+input[type="checkbox"]:checked::before { transform: translateX(16px); }
+input[type="checkbox"]:focus-visible { outline: 2px solid var(--focus); }
+input[type="checkbox"]:hover:not(:disabled) { border-color: transparent; }
+.numctl { grid-template-columns: 26px minmax(40px, 1fr) 26px minmax(52px, auto); gap: 6px; }
+.numctl.no-slider { grid-template-columns: 26px minmax(52px, 1fr) 26px; }
+.numctl-step { width: 26px; height: 26px; }
+.numctl-val, .numctl-edit { height: 28px; padding: 0 8px; border-radius: var(--radius-xs); }
+.numctl-val { border-color: var(--line-strong); }
+.numctl-val:hover { border-color: #919191; }
+code { background: var(--control); border-color: transparent; padding: 0 6px; border-radius: var(--radius-xs); }
+.seg { gap: 2px; padding: 2px; border: none; border-radius: var(--radius-s); background: var(--control); }
+.seg button { min-height: 28px; border: none; border-radius: calc(var(--radius-s) - 2px); padding: 2px 6px; color: var(--muted); background: transparent; }
+.seg button:hover:not(:disabled) { background: var(--control); color: var(--ink); }
+.seg button[aria-pressed="true"], .seg button[aria-pressed="true"]:hover:not(:disabled) { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: var(--shadow-low); }
+.topbar { background: var(--surface); padding: 0 12px; }
+.topbar h1 { font-size: 16px; font-weight: 600; letter-spacing: 0; margin: 0 10px 0 4px; }
+.pill { min-height: 28px; padding: 1px 12px; background: var(--control); border-color: transparent; }
+.pill-label { font-weight: 600; }
+.psec-title { padding: 8px 14px; font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--ink); background: var(--section-head); }
+.psec-body { padding: 12px 14px 14px; gap: 8px; }
+.side-foot { padding: 12px 14px; background: var(--surface); }
+.status-panel { padding: 8px 14px; }
+.progress { background: var(--control); border-radius: 999px; }
+.overall-pct { font-size: 12px; font-weight: 600; }
+.tabs-h { background: var(--surface); }
+.tabs-h button { min-height: 40px; color: var(--muted); }
+.tabs-h button:hover:not(:disabled) { background: var(--control); }
+.tabs-h button[aria-selected="true"] { border-bottom-color: var(--accent); color: var(--ink); font-weight: 600; }
+dialog.big { border: none; box-shadow: var(--shadow-high); }
+dialog.big::backdrop { background: var(--backdrop); }
+.dlg-head { padding: 8px 12px 8px 20px; min-height: 52px; background: var(--surface); }
+.dlg-head h2 { font-size: 17px; font-weight: 600; }
+.tabs-v { padding: 10px 8px; gap: 2px; background: var(--bg); }
+.tabs-v button { padding: 3px 10px; font-weight: 500; color: var(--muted); }
+.tabs-v button:hover:not(:disabled) { background: var(--control); border-color: transparent; color: var(--ink); }
+.tabs-v button[aria-selected="true"], .tabs-v button[aria-selected="true"]:hover:not(:disabled) { background: var(--surface); border-color: transparent; color: var(--ink); font-weight: 600; box-shadow: var(--shadow-low); }
+.pane { padding: 20px 24px; }
+.pane h3 { font-size: 20px; font-weight: 600; }
+.lead a, .note a { color: var(--link); font-weight: 600; }
+.card { border-radius: var(--radius-l); padding: 12px 14px; }
+.card-title { font-size: 14px; font-weight: 600; }
+.kv dt { font-weight: 600; }
+.splitter:hover::after, .splitter.dragging::after { background: var(--on-accent); }
+button.mini, button.small { min-height: 24px; padding: 0 9px; }
+button.quiet.danger { color: var(--danger); background: transparent; border-color: transparent; }
+button.quiet.danger:hover:not(:disabled) { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+.msg.warn { padding: 6px 10px; }
+pre { border-radius: var(--radius-s); }
+.panel-bar { background: var(--surface); }
+.panel-collapse { height: 22px; }
+.panel-collapse:hover { background: var(--control); color: var(--ink); }
+.layout.hide-left > .col-left .panel-collapse, .layout.hide-right > .col-right .panel-collapse { height: 100%; }
+.phase { font-weight: 600; padding: 1px 10px; }
+.status-main { font-weight: 600; }
+.story-title { font-weight: 600; }
+.item { border-radius: var(--radius-l); padding: 10px; }
+.item-head .tag { font-weight: 600; }
+.base-drop { border-width: 1px; }
+.base-drop.over { border-color: var(--accent); color: var(--ink); }
+.scene.running { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.scene-head { padding: 6px 8px 6px 10px; }
+.scene-head .title { font-weight: 600; }
+.scene.custom-prompt .preview-details > summary .preview-label { color: var(--ink); }
+.cast-block { border-radius: var(--radius-s); }
+.cast-who { font-weight: 600; }
+.thumb:focus-visible { outline-color: var(--focus); }
+.pick-state { font-weight: 600; }
+.set-strip-head { background: var(--section-head); padding: 6px 8px 6px 12px; }
+.set-strip-head h2 { font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--ink); }
+.menu-list { border: none; box-shadow: var(--shadow-high); background: var(--surface); padding: 6px; }
+.menu-list button { border-radius: var(--radius-xs); padding: 7px 10px; }
+.menu-list button:hover:not(:disabled) { background: var(--control); }
+.tbl th { font-weight: 600; }
+.llm-chips button { min-height: 28px; padding: 1px 12px; }
+.llm-chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.help-sec h4 { font-weight: 600; }
+.viewer-nav { border-radius: var(--radius-l); }
+.score-big { font-weight: 600; }
+.scene-no { display: block; box-sizing: border-box; text-align: center; line-height: 1; font-family: var(--num-font); font-variant-numeric: lining-nums tabular-nums; text-box: trim-both cap alphabetic; padding-top: calc((24px - 1cap) / 2); }
+.help-sec .no { display: block; box-sizing: border-box; text-align: center; line-height: 1; font-family: var(--num-font); font-variant-numeric: lining-nums tabular-nums; text-box: trim-both cap alphabetic; padding-top: calc((24px - 1cap) / 2); }
+
+/* ===== PANEL BAR (FOLD / SEPARATE WINDOW) ===== */
+.layout { --rail-w: 28px; }
+.panel-bar { flex: none; display: flex; align-items: center; gap: 2px; height: 30px; padding: 0 4px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.panel-collapse, .panel-pop {
+  min-height: 0; height: 24px; padding: 0 7px; border: none; border-radius: var(--radius-xs); background: transparent; color: var(--muted);
+  font-size: 13px; font-weight: 600; line-height: 1; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.panel-collapse:hover:not(:disabled), .panel-pop:hover:not(:disabled) { background: var(--control); color: var(--ink); border: none; }
+.panel-collapse { letter-spacing: -.12em; }
+.panel-collapse .label { display: none; letter-spacing: 0; font-size: 12px; font-weight: 500; }
+.panel-pop .label { font-size: 12px; font-weight: 500; }
+.panel-pop::before, .panel-return::before { content: ""; width: 14px; height: 14px; flex: none; background: currentColor; -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
+.panel-pop { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/%3E%3C/svg%3E"); }
+.panel-pop.is-detached, .panel-return { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 3 12 12M12 6v6h6M18 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4'/%3E%3C/svg%3E"); }
+[data-panel] > .panel-bar { justify-content: flex-start; }
+[data-panel="left"] > .panel-bar > .panel-collapse { margin-left: auto; }
+[data-panel="right"] > .panel-bar > .panel-pop { margin-left: auto; }
+.layout.hide-left > [data-panel="left"] > :not(.panel-bar), .layout.hide-right > [data-panel="right"] > :not(.panel-bar) { display: none; }
+.layout.hide-left > [data-panel="left"] > .panel-bar, .layout.hide-right > [data-panel="right"] > .panel-bar { height: 100%; padding: 4px 2px; border-bottom: none; align-items: flex-start; justify-content: center; }
+.layout.hide-left > [data-panel="left"] .panel-pop, .layout.hide-right > [data-panel="right"] .panel-pop { display: none; }
+.layout.hide-left > [data-panel="left"] .panel-collapse, .layout.hide-right > [data-panel="right"] .panel-collapse { margin: 0; width: 100%; height: auto; padding: 8px 0; flex-direction: column; justify-content: flex-start; }
+.panel-ghost { background: var(--surface); }
+
+/* ===== PANEL IN A SEPARATE WINDOW ===== */
+html:has(> body.panel-window-body), body.panel-window-body { height: 100%; }
+body.panel-window-body { display: flex; flex-direction: column; overflow: hidden; padding-top: 0; }
+.layout.panel-window { display: flex; flex: 1 1 auto; min-height: 0; height: 100%; background: var(--surface); }
+.layout.panel-window > [data-panel] { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.layout.panel-window .side-scroll, .layout.panel-window .insp-scroll { overflow-y: auto; }
+.layout.panel-window .panel-collapse, .layout.panel-window .side-resizer { display: none; }
+.layout.panel-window [data-panel="right"] > .panel-bar > .panel-pop { margin-left: 0; }
+@media (max-width: 1100px) {
+  .layout.hide-left > [data-panel="left"] > .panel-bar, .layout.hide-right > [data-panel="right"] > .panel-bar { height: 30px; align-items: center; justify-content: flex-start; }
+  .layout.hide-left > [data-panel="left"] .panel-collapse, .layout.hide-right > [data-panel="right"] .panel-collapse { flex-direction: row; width: auto; padding: 0 12px; }
+  .layout.hide-left .panel-collapse .label, .layout.hide-right .panel-collapse .label { display: inline; }
+}
+
+/* ===== HELP SWITCH (SAME TEXT LINE AS THE BUTTONS) ===== */
+.topbar .help-toggle { display: inline-flex; align-items: center; gap: 8px; margin: 0 4px; min-height: var(--h-control); padding: 3px 4px; font-size: 13px; font-weight: 500; line-height: 1.3; color: var(--ink); white-space: nowrap; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -479,8 +649,8 @@ dialog#show[open] { display: flex; flex-direction: column; }
 <div class="menu-list" id="save-menu" hidden></div>
 
 <main class="layout">
-  <aside class="col-left" aria-label="ストーリーと登場人物">
-    <div class="panel-bar"><button class="panel-collapse" id="btn-toggle-left" type="button" aria-expanded="true"><span class="arrow"></span><span class="label">左パネル</span></button></div>
+  <aside class="col-left" data-panel="left" aria-label="ストーリーと登場人物">
+    <div class="panel-bar"><button class="panel-pop" id="btn-pop-left" type="button"><span class="label"></span></button><button class="panel-collapse" id="btn-toggle-left" type="button" aria-expanded="true"><span class="arrow"></span><span class="label">左パネル</span></button></div>
     <div class="side-scroll" id="left-panel"></div>
     <div class="side-foot">
       <div class="add-row">
@@ -523,8 +693,8 @@ dialog#show[open] { display: flex; flex-direction: column; }
   </section>
   <div class="splitter" data-side="right" role="separator" aria-orientation="vertical" aria-label="右のパネルの幅（ドラッグで調整・ダブルクリックで元に戻す）" title="ドラッグで幅を調整（ダブルクリックで元に戻す）"></div>
 
-  <aside class="col-right" aria-label="画像の設定と生成の設定">
-    <div class="panel-bar"><button class="panel-collapse" id="btn-toggle-right" type="button" aria-expanded="true"><span class="arrow"></span><span class="label">右パネル</span></button></div>
+  <aside class="col-right" data-panel="right" aria-label="画像の設定と生成の設定">
+    <div class="panel-bar"><button class="panel-collapse" id="btn-toggle-right" type="button" aria-expanded="true"><span class="arrow"></span><span class="label">右パネル</span></button><button class="panel-pop" id="btn-pop-right" type="button"><span class="label"></span></button></div>
     <div class="tabs-h" id="right-tabs" role="tablist"></div>
     <div class="insp-scroll" id="right-panel"></div>
   </aside>
@@ -587,6 +757,18 @@ const USER_SETTINGS = {
   etaSmoothing: 0.3,
   numberControl: { repeatDelayMs: 400, repeatMs: 70 },
   sidePanels: { left: [260, 560, 320], right: [280, 560, 340], centerMin: 420, splitterPx: 6 },
+  panelWindow: {
+    pollMs: 1000,
+    minWidth: 280,
+    labels: { left: "左パネル", right: "右パネル" },
+    pop: "別ウィンドウ",
+    popTitle: "このパネルを別ウィンドウに表示します（中身はそのまま使えます。ウィンドウを閉じるとメイン画面に戻ります）",
+    back: "メイン画面に戻す",
+    backTitle: "このパネルをメイン画面に戻します",
+    ghostLabel: "別ウィンドウで表示中",
+    ghostTitle: "このパネルは別ウィンドウで表示中です（押すとメイン画面に戻します）",
+    blocked: "別ウィンドウを開けませんでした。ブラウザのポップアップのブロックを解除してください。",
+  },
   loraPattern: /<lora:([^:>]+)(?::([-\d.]+))?[^>]*>/gi,
   loraExtensions: /\.(safetensors|ckpt|pt|pth|bin)$/i,
   loraDefaultExtension: ".safetensors",
@@ -1237,7 +1419,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     perScene: "1シーンの枚数",
     check: "生成した画像を文章AIでチェックする",
     checkNote: "画像を読めるモデルが必要です。オフにすると、指定枚数を順番に作るだけになります。",
-    checkOnly: "🔍 文章AIチェック",
+    checkOnly: "文章AIチェック",
     checkOnlyNote: "生成済みの画像を、いまの基準で文章AIにチェックさせます（画像は作りません）。チェックが済んだ画像は飛ばします。チェックをオフにして生成したあとに使います。",
     threshold: "合格の点数",
     strictScene: "プロンプトどおりでない絵も不合格にする",
@@ -1367,7 +1549,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     url: "URL",
     probe: "接続テスト",
     reloadLists: "モデル・LoRA の一覧を読み直す",
-    llmDetect: "🔍 自動で探す",
+    llmDetect: "自動で探す",
     llmFetch: "モデルの一覧を更新",
     llmUrl: "サーバーURL",
     llmModel: "モデル",
@@ -1452,6 +1634,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルをクリックするとその1枚が下に大きく出て、★（確定）が付きます。★ をもう一度押すと確定を外し、点数で自動に選びます。サムネイル右上の ✕ で、その画像を消せます。", "サムネイルをダブルクリックすると詳細が開き、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
     { title: "同じシチュを別のキャラで作る", items: ["「保存 ▾」→「シチュを保存」でシーンを保存し、キャラごとに「キャストを保存」しておきます。", "「開く」でシチュとキャストを開くと、組み合わせを入れ替えて同じシチュを何組でも作れます。"] },
     { title: "残す・共有する", items: ["作業の状態はブラウザに残りません。閉じる前に「保存 ▾」で保存してください。", "「セット」欄の「ダウンロード（ZIP）」か「Prompt Reel に投稿」で、各シーンの1枚を残します。", "「▶ 紙芝居」で、各シーンの1枚とナレーションを順番に全画面で見られます（← → キー・自動再生）。"] },
+    { title: "画面を使いやすくする", items: ["上の「説明」をオフにすると、画面の説明文を隠します。", "左右のパネルの上の « » でパネルを畳み、シーンを広く表示できます。畳んだ細い帯の矢印で開きます。", "「別ウィンドウ」で、そのパネルだけを別のウィンドウに出せます（2画面で使うときなど）。中身はそのまま使え、ウィンドウを閉じるか「メイン画面に戻す」で元に戻ります。", "パネルの境目をドラッグすると幅を変えられます（ダブルクリックで元の幅）。"] },
   ],
   messages: {
     probing: "確認中…",
@@ -1579,7 +1762,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
 };
 
 // ===== UTILITIES =====
-const $ = (id) => document.getElementById(id);
+const $ = (id) => document.getElementById(id) || PanelWindow.find(id);
 const uid = () => Math.random().toString(36).slice(2, 10);
 const clone = (obj) => JSON.parse(JSON.stringify(obj));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -1675,6 +1858,183 @@ function readJsonFile(file) {
 
 function safeName(text) {
   return String(text || "").replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
+}
+
+// ===== PANEL WINDOW (SHOW A SIDE PANEL IN A SEPARATE WINDOW) =====
+class PanelWindow {
+  static active = new Set();
+  static mirrors = [];
+  static hooks = [];
+
+  static find(id) {
+    for (const panel of this.active) {
+      const el = panel.doc?.getElementById(id);
+      if (el) return el;
+    }
+    return null;
+  }
+
+  static query(selector) {
+    const hit = document.querySelector(selector);
+    if (hit) return hit;
+    for (const panel of this.active) {
+      const el = panel.doc?.querySelector(selector);
+      if (el) return el;
+    }
+    return null;
+  }
+
+  static queryAll(selector) {
+    const list = [...document.querySelectorAll(selector)];
+    for (const panel of this.active) if (panel.doc) list.push(...panel.doc.querySelectorAll(selector));
+    return list;
+  }
+
+  static mirror(type, fn, opts) {
+    this.mirrors.push({ type, fn, opts, onWindow: false });
+    return fn;
+  }
+
+  static mirrorWindow(type, fn, opts) {
+    this.mirrors.push({ type, fn, opts, onWindow: true });
+    return fn;
+  }
+
+  static onWindow(hook) {
+    this.hooks.push(hook);
+  }
+
+  constructor({ side, col, button, onChange }) {
+    this.cfg = USER_SETTINGS.panelWindow;
+    this.side = side;
+    this.col = col;
+    this.button = button;
+    this.onChange = onChange;
+    this.win = null;
+    this.doc = null;
+    this.ghost = null;
+    this.handlers = [];
+    this.disposers = [];
+    this.onButton = () => this.toggle();
+    this.button.addEventListener("click", this.onButton);
+    this.render();
+  }
+
+  get detached() {
+    return !!this.win;
+  }
+
+  toggle() {
+    if (this.win) this.dock();
+    else this.detach();
+  }
+
+  render() {
+    const c = this.cfg;
+    const on = this.detached;
+    const text = on ? c.backTitle : c.popTitle;
+    this.button.classList.toggle("is-detached", on);
+    this.button.title = text;
+    this.button.setAttribute("aria-label", text);
+    const label = this.button.querySelector(".label");
+    if (label) label.textContent = on ? c.back : c.pop;
+  }
+
+  listen(target, type, fn, opts) {
+    target.addEventListener(type, fn, opts);
+    this.handlers.push([target, type, fn, opts]);
+  }
+
+  detach() {
+    const c = this.cfg;
+    const rect = this.col.getBoundingClientRect();
+    const width = Math.max(c.minWidth, Math.round(rect.width));
+    const height = Math.round(window.innerHeight);
+    const left = Math.round(window.screenX + rect.left);
+    const top = Math.round(window.screenY + window.outerHeight - window.innerHeight);
+    const name = `${document.title}_${this.side}_panel`.replace(/\W+/g, "_");
+    const win = window.open("", name, `popup=yes,width=${width},height=${height},left=${left},top=${top}`);
+    if (!win) {
+      this.onChange?.(false, c.blocked);
+      return;
+    }
+    const doc = win.document;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html lang="${document.documentElement.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title></title></head><body></body></html>`);
+    doc.close();
+    doc.title = `${document.title} — ${c.labels[this.side]}`;
+    document.head.querySelectorAll('style, link[rel="stylesheet"], link[rel="icon"]').forEach((node) => doc.head.append(doc.importNode(node, true)));
+    const syncBody = () => { doc.body.className = `${document.body.className} panel-window-body`.trim(); };
+    syncBody();
+    this.bodySync = new MutationObserver(syncBody);
+    this.bodySync.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    const shell = doc.createElement("main");
+    shell.className = "layout panel-window";
+    doc.body.append(shell);
+    this.ghost = this.makeGhost();
+    this.col.replaceWith(this.ghost);
+    shell.append(this.col);
+    this.win = win;
+    this.doc = doc;
+    PanelWindow.active.add(this);
+    for (const m of PanelWindow.mirrors) this.listen(m.onWindow ? win : doc, m.type, m.fn, m.opts);
+    this.listen(doc, "dragover", (e) => e.preventDefault());
+    this.listen(doc, "drop", (e) => e.preventDefault());
+    this.listen(win, "pagehide", () => this.dock());
+    this.listen(window, "pagehide", () => this.dock());
+    this.disposers = PanelWindow.hooks.map((hook) => hook(doc, win)).filter(Boolean);
+    this.timer = setInterval(() => { if (win.closed) this.dock(); }, c.pollMs);
+    this.render();
+    this.onChange?.(true);
+    win.focus();
+  }
+
+  makeGhost() {
+    const c = this.cfg;
+    const ghost = document.createElement("aside");
+    ghost.className = `${this.col.className} panel-ghost`;
+    ghost.dataset.panel = this.side;
+    ghost.setAttribute("aria-label", c.ghostTitle);
+    const bar = document.createElement("div");
+    bar.className = "panel-bar";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "panel-collapse panel-return";
+    btn.title = c.ghostTitle;
+    btn.setAttribute("aria-label", c.ghostTitle);
+    const label = document.createElement("span");
+    label.className = "label";
+    label.textContent = c.ghostLabel;
+    btn.append(label);
+    btn.addEventListener("click", () => this.dock());
+    bar.append(btn);
+    ghost.append(bar);
+    return ghost;
+  }
+
+  dock() {
+    if (!this.win) return;
+    const win = this.win;
+    clearInterval(this.timer);
+    this.bodySync.disconnect();
+    for (const [target, type, fn, opts] of this.handlers) target.removeEventListener(type, fn, opts);
+    this.handlers = [];
+    for (const dispose of this.disposers) dispose();
+    this.disposers = [];
+    PanelWindow.active.delete(this);
+    this.win = null;
+    this.doc = null;
+    this.ghost.replaceWith(this.col);
+    this.ghost = null;
+    if (!win.closed) win.close();
+    this.render();
+    this.onChange?.(false);
+  }
+
+  destroy() {
+    this.dock();
+    this.button.removeEventListener("click", this.onButton);
+  }
 }
 
 // ===== LISTENER BAG (REMOVED ON DESTROY) =====
@@ -4072,7 +4432,7 @@ class RightPanel {
         h("p", { class: "note", text: L.checkNote }),
         checkBox,
         h("div", { class: "check-only" },
-          h("button", { id: "btn-check-only", text: L.checkOnly, disabled: app.runner.busy, onclick: () => app.checkOnly() }),
+          h("button", { id: "btn-check-only", class: "icon-search", text: L.checkOnly, disabled: app.runner.busy, onclick: () => app.checkOnly() }),
           h("p", { class: "note", text: L.checkOnlyNote })),
       ]),
       Form.section("memory", L.secMemory, [
@@ -4689,7 +5049,7 @@ class SettingsDialog {
         onclick: () => { llm.url = f.url; urlIn.value = f.url; if (!f.models.includes(llm.model)) llm.model = f.models[0] || ""; save(); fillModels(f.models); paintChips(found); },
       })));
     };
-    const detect = h("button", { class: "primary", text: L.llmDetect, onclick: async () => {
+    const detect = h("button", { class: "primary icon-search", text: L.llmDetect, onclick: async () => {
       setMsg(msg, M.probing);
       const found = await LlmClient.detect(llm);
       paintChips(found);
@@ -4780,9 +5140,17 @@ class App {
     this.conn = { image: "idle", llm: "idle" };
     this.runner = new Runner(this);
     this.bag = new Listeners();
+    PanelWindow.onWindow((doc, win) => {
+      const bag = new Listeners();
+      const numbers = NumberControl.watch(doc.body);
+      const grow = AutoGrow.watch(doc.body, [], bag);
+      ClipTitle.attach(doc.body, bag);
+      bag.on(win, "resize", () => AutoGrow.fitAll(doc.body));
+      return () => { numbers.disconnect(); grow.disconnect(); bag.destroy(); };
+    });
     this.numbers = NumberControl.watch(document.body);
-    this.grow = AutoGrow.watch(document.body, [...document.querySelectorAll(".col-left, .col-center, .col-right")], this.bag);
-    const statusPanel = document.querySelector(".status-panel");
+    this.grow = AutoGrow.watch(document.body, [...PanelWindow.queryAll(".col-left, .col-center, .col-right")], this.bag);
+    const statusPanel = PanelWindow.query(".status-panel");
     this.statusSize = new ResizeObserver(() => document.body.style.setProperty("--status-h", `${statusPanel.offsetHeight}px`));
     this.statusSize.observe(statusPanel);
     this.left = new LeftPanel(this);
@@ -4796,6 +5164,19 @@ class App {
     LlmClient.onProgress = (text) => this.status(text);
     LlmClient.onStall = (text) => this.status(text);
     this.bindTop();
+    this.panelWindows = {};
+    for (const side of ["left", "right"]) {
+      this.panelWindows[side] = new PanelWindow({
+        side,
+        col: PanelWindow.query(`[data-panel="${side}"]`),
+        button: $(`btn-pop-${side}`),
+        onChange: (on, error) => {
+          if (error) this.notice(error, "warn");
+          this.applyPanels();
+          AutoGrow.fitAll(document.body);
+        },
+      });
+    }
     this.bindSplitters();
     this.applySideWidths();
     this.applyPanels();
@@ -4817,7 +5198,7 @@ class App {
     this.numbers.disconnect();
     this.grow.disconnect();
     this.statusSize.disconnect();
-    for (const part of [this.bag, this.left, this.right, this.board, this.setStrip, this.viewer, this.show, this.settings]) part.destroy();
+    for (const part of [...Object.values(this.panelWindows), this.bag, this.left, this.right, this.board, this.setStrip, this.viewer, this.show, this.settings]) part.destroy();
     this.images.clearAll();
   }
 
@@ -4825,9 +5206,9 @@ class App {
   // 左右のパネルを畳む・開く。矢印はパネルが動く向き（左パネルの « で左へ畳む、細い帯の » で開く）
   applyPanels() {
     const ui = this.store.data.ui;
-    const layout = document.querySelector(".layout");
+    const layout = PanelWindow.query(".layout");
     for (const side of ["left", "right"]) {
-      const hidden = side === "left" ? !!ui.hideLeft : !!ui.hideRight;
+      const hidden = (side === "left" ? !!ui.hideLeft : !!ui.hideRight) || !!this.panelWindows?.[side]?.detached;
       layout.classList.toggle(`hide-${side}`, hidden);
       const btn = $(`btn-toggle-${side}`);
       btn.setAttribute("aria-expanded", String(!hidden));
@@ -4848,15 +5229,15 @@ class App {
   applySideWidths() {
     const ui = this.store.data.ui;
     const cfg = USER_SETTINGS.sidePanels;
-    const layout = document.querySelector(".layout");
+    const layout = PanelWindow.query(".layout");
     layout.style.setProperty("--left-w", `${ui.leftW || cfg.left[2]}px`);
     layout.style.setProperty("--right-w", `${ui.rightW || cfg.right[2]}px`);
   }
 
   bindSplitters() {
     const cfg = USER_SETTINGS.sidePanels;
-    const layout = document.querySelector(".layout");
-    document.querySelectorAll(".splitter").forEach((bar) => {
+    const layout = PanelWindow.query(".layout");
+    PanelWindow.queryAll(".splitter").forEach((bar) => {
       const side = bar.dataset.side;
       const key = side === "left" ? "leftW" : "rightW";
       const [min, max, initial] = cfg[side];
@@ -5138,7 +5519,7 @@ class App {
   runStateChanged(running) {
     $("btn-run").disabled = running;
     $("btn-stop").hidden = !running;
-    for (const b of document.querySelectorAll(".scene-run, #btn-check-only")) b.disabled = running;
+    for (const b of PanelWindow.queryAll(".scene-run, #btn-check-only")) b.disabled = running;
     if (!running) this.progress($("run-bar").style.width === "100%" ? 1 : 0);
   }
 
@@ -5688,8 +6069,8 @@ class App {
     this.bag.on($("btn-toggle-left"), "click", () => this.togglePanel("left"));
     this.bag.on($("btn-toggle-right"), "click", () => this.togglePanel("right"));
     this.bag.on($("help-toggle"), "change", () => { this.store.data.ui.help = $("help-toggle").checked; this.store.save(); this.applyHelp(); });
-    this.bag.on(document, "click", (e) => { if (!e.target.closest("#save-menu")) $("save-menu").hidden = true; });
-    this.bag.on(document, "keydown", (e) => { if (e.key === "Escape") $("save-menu").hidden = true; });
+    this.bag.on(document, "click", PanelWindow.mirror("click", (e) => { if (!e.target.closest("#save-menu")) $("save-menu").hidden = true; }));
+    this.bag.on(document, "keydown", PanelWindow.mirror("keydown", (e) => { if (e.key === "Escape") $("save-menu").hidden = true; }));
     this.bag.on($("run-target"), "change", () => { this.doc.run.target = $("run-target").value; this.dirty = true; });
     const pickFile = (id, fn) => this.bag.on($(id), "change", (e) => {
       const f = e.target.files?.[0];
@@ -5712,12 +6093,12 @@ class App {
       if (this.runner.busy || this.dirty || this.imageCount()) { e.preventDefault(); e.returnValue = M.leaveConfirm; }
     });
     this.bag.on(document, "dragover", (e) => e.preventDefault());
-    this.bag.on(document, "drop", async (e) => {
+    this.bag.on(document, "drop", PanelWindow.mirror("drop", async (e) => {
       e.preventDefault();
       const entries = await droppedFiles(e.dataTransfer);
       if (entries.length === 1 && !entries[0].path.includes("/")) this.openFile(entries[0].file);
       else if (entries.length) this.openFiles(entries);
-    });
+    }));
   }
 }
 
