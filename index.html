@@ -27,7 +27,7 @@
   --accent-text: #1b1b1b;
   --accent-soft: #e2e2e2;
   --on-accent-soft: #1b1b1b;
-  --link: #0067ce;
+  --link: #000000;
   --focus: #1b1b1b;
   --knob: #ffffff;
   --lamp: #e68619;
@@ -46,8 +46,8 @@
   --radius-xs: 6px;
   --radius-s: 10px;
   --radius-l: 12px;
-  --shadow-low: 0 2px 4px rgba(0, 0, 0, .05), 0 4px 8px rgba(0, 0, 0, .10), inset 0 0 0 1px rgba(0, 0, 0, .05);
-  --shadow-high: 0 4px 6px rgba(0, 0, 0, .10), 0 12px 24px rgba(0, 0, 0, .15), inset 0 0 0 1px rgba(0, 0, 0, .05);
+  --shadow-low: 0 0 0 1px var(--line-strong);
+  --shadow-high: 0 0 0 1px var(--line-strong);
   --backdrop: rgba(0, 0, 0, .5);
   --h-control: 32px;
   --run-height: 36px;
@@ -80,15 +80,15 @@
     --accent-text: #f1f1f1;
     --accent-soft: #303030;
     --on-accent-soft: #f1f1f1;
-    --link: #a1caff;
+    --link: #ffffff;
     --focus: #f1f1f1;
     --knob: #262626;
     --lamp: #f0a63a;
     --danger: #ffaea7;
     --danger-soft: #5b2b28;
-    --danger-fill: #ff705d;
-    --danger-fill-hover: #ff8f80;
-    --on-danger: #111111;
+    --danger-fill: #e5484d;
+    --danger-fill-hover: #f05d62;
+    --on-danger: #ffffff;
     --ok: #90ca90;
     --ok-soft: #2b422b;
     --on-status: #111111;
@@ -96,8 +96,8 @@
     --on-warn-soft: #eec448;
     --stage: #121212;
     --chip: #333333;
-    --shadow-low: 0 2px 4px rgba(0, 0, 0, .25), 0 4px 8px rgba(0, 0, 0, .40), inset 0 0 0 1px rgba(255, 255, 255, .08);
-    --shadow-high: 0 4px 6px rgba(0, 0, 0, .50), 0 12px 24px rgba(0, 0, 0, .70), inset 0 0 0 1px rgba(255, 255, 255, .08);
+    --shadow-low: 0 0 0 1px var(--line-strong);
+    --shadow-high: 0 0 0 1px var(--line-strong);
     --backdrop: rgba(0, 0, 0, .8);
     color-scheme: dark;
   }
@@ -179,7 +179,7 @@ input[type="checkbox"] {
 }
 input[type="checkbox"]::before {
   content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
-  background: #ffffff; box-shadow: 0 1px 2px rgba(0, 0, 0, .35); transition: transform .15s;
+  background: #ffffff; box-shadow: none; transition: transform .15s;
 }
 input[type="checkbox"]:checked { background: var(--accent); }
 input[type="checkbox"]:checked::before { transform: translateX(14px); }
@@ -205,7 +205,6 @@ input[type="checkbox"]:disabled { opacity: .45; cursor: not-allowed; }
 /* ===== TOP BAR ===== */
 .topbar { flex: none; height: var(--topbar-h); display: flex; align-items: center; gap: 4px; padding: 0 10px; background: var(--head); border-bottom: 1px solid var(--line); }
 .topbar h1 { font-size: 14px; margin: 0 6px 0 2px; font-weight: 700; letter-spacing: .04em; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
-.topbar h1::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--lamp); }
 .topbar > button { white-space: nowrap; }
 .pills { display: flex; gap: 4px; margin-left: auto; flex-wrap: nowrap; overflow: hidden; min-width: 0; }
 .pill { min-height: 24px; font-size: 12px; border-radius: 999px; padding: 1px 10px; background: transparent; border-color: var(--line); white-space: nowrap; min-width: 0; }
@@ -273,7 +272,7 @@ body.resizing * { user-select: none; }
   .topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 41; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
   .topbar > *, .topbar .pills, .topbar .pill { flex: none; }
   .topbar .pills { overflow: visible; }
-  .status-panel { position: fixed; top: var(--topbar-h); left: 0; right: 0; z-index: 40; box-shadow: 0 2px 8px rgb(0 0 0 / .12); }
+  .status-panel { position: fixed; top: var(--topbar-h); left: 0; right: 0; z-index: 40; box-shadow: none; }
 }
 
 /* ===== STATUS PANEL (PHASE, PROGRESS AT THE TOP RIGHT, ETA) ===== */
@@ -401,7 +400,7 @@ body.resizing * { user-select: none; }
 .set-item .cap b { color: var(--ink); }
 
 /* ===== MENU ===== */
-.menu-list { position: fixed; z-index: 60; width: min(var(--menu-w), 100vw - 16px); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--radius-l); box-shadow: 0 8px 24px rgba(0, 0, 0, .3); padding: 4px; display: flex; flex-direction: column; }
+.menu-list { position: fixed; z-index: 60; width: min(var(--menu-w), 100vw - 16px); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--radius-l); box-shadow: none; padding: 4px; display: flex; flex-direction: column; }
 .menu-list button { justify-content: flex-start; border: none; background: transparent; text-align: left; flex-direction: column; align-items: flex-start; gap: 0; padding: 6px 10px; }
 .menu-list button small { color: var(--muted); font-weight: 400; white-space: normal; line-height: 1.4; }
 
@@ -409,7 +408,7 @@ body.resizing * { user-select: none; }
 dialog.big {
   width: min(980px, 100vw - 24px); height: min(780px, 100dvh - 24px); max-width: none; max-height: none;
   padding: 0; border: 1px solid var(--line-strong); border-radius: var(--radius-l); background: var(--surface); color: var(--ink); overflow: hidden;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+  box-shadow: none;
 }
 dialog.big[open] { display: flex; flex-direction: column; }
 dialog.big::backdrop { background: rgba(0, 0, 0, .55); }
@@ -504,7 +503,7 @@ input:hover:not(:disabled), select:hover:not(:disabled), textarea:hover:not(:dis
 input:focus, select:focus, textarea:focus { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
 textarea { padding: 6px 10px; }
 input[type="checkbox"] { width: 36px; transition: background .175s; }
-input[type="checkbox"]::before { background: var(--knob); box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .175s cubic-bezier(.24, 1, .4, 1); }
+input[type="checkbox"]::before { background: var(--knob); box-shadow: none; transition: transform .175s cubic-bezier(.24, 1, .4, 1); }
 input[type="checkbox"]:checked::before { transform: translateX(16px); }
 input[type="checkbox"]:focus-visible { outline: 2px solid var(--focus); }
 input[type="checkbox"]:hover:not(:disabled) { border-color: transparent; }
@@ -625,6 +624,26 @@ body.panel-window-body { display: flex; flex-direction: column; overflow: hidden
 
 /* ===== HELP SWITCH (SAME TEXT LINE AS THE BUTTONS) ===== */
 .topbar .help-toggle { display: inline-flex; align-items: center; gap: 8px; margin: 0 4px; min-height: var(--h-control); padding: 3px 4px; font-size: 13px; font-weight: 500; line-height: 1.3; color: var(--ink); white-space: nowrap; cursor: pointer; }
+
+/* ===== DESIGN RULES (NO SHADOW / MONOCHROME / CORNERS) ===== */
+.empty-board, .item, .base-drop, .base-drop img, .scene, .scene-head, .cast-block, .thumbs-empty, .scene-pick,
+.scene-pick-frame img, .thumb, .set-strip, .set-strip-head, .set-item .frame, .card, pre, .show-missing { border-radius: 0; }
+.lead a, .note a, .help-sec a, a.inline-link { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+.status-panel { border-bottom: 1px solid var(--line-strong); }
+
+/* ===== DRAG SORT ===== */
+.drag-grip { flex: none; display: inline-block; width: 18px; height: 24px; cursor: grab; touch-action: none; color: var(--muted); background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Ccircle cx='9' cy='5' r='1.6'/%3E%3Ccircle cx='9' cy='12' r='1.6'/%3E%3Ccircle cx='9' cy='19' r='1.6'/%3E%3Ccircle cx='15' cy='5' r='1.6'/%3E%3Ccircle cx='15' cy='12' r='1.6'/%3E%3Ccircle cx='15' cy='19' r='1.6'/%3E%3C/svg%3E") center / 16px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Ccircle cx='9' cy='5' r='1.6'/%3E%3Ccircle cx='9' cy='12' r='1.6'/%3E%3Ccircle cx='9' cy='19' r='1.6'/%3E%3Ccircle cx='15' cy='5' r='1.6'/%3E%3Ccircle cx='15' cy='12' r='1.6'/%3E%3Ccircle cx='15' cy='19' r='1.6'/%3E%3C/svg%3E") center / 16px no-repeat; }
+.drag-grip:hover { color: var(--ink); }
+.drag-sorting { position: relative; }
+.drag-lifted { position: relative; z-index: 5; outline: 2px solid var(--accent); outline-offset: -1px; }
+.drag-lifted .drag-grip { color: var(--ink); }
+body.drag-active, body.drag-active * { cursor: grabbing !important; -webkit-user-select: none; user-select: none; }
+
+/* ===== DESIGN RULES 2 (RED FILL = WHITE TEXT / NO GRADIENT) ===== */
+.phase[data-phase="error"], .thumb .badge.ng { background: var(--danger-fill); color: var(--on-danger); }
+.thumb .del:hover { background: var(--danger-fill); color: var(--on-danger); }
 </style>
 </head>
 <body>
@@ -1501,10 +1520,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     rewriteScene: "✦ 文から書き直す",
     rewriteSceneTitle: "タイトルとナレーションから、文章AIにプロンプトを書き直してもらいます",
     clearImages: "画像を消す",
-    up: "↑",
-    down: "↓",
-    upTitle: "このシーンを前へ",
-    downTitle: "このシーンを後ろへ",
+    dragTitle: "ドラッグしてシーンの順番を入れ替えます",
     duplicate: "複製",
     statLine: "{total}枚・合格 <b>{good}</b>・不合格 {ng}・未チェック {pending}",
     statPicked: "・採用 #{n}",
@@ -1630,7 +1646,7 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     { title: "最初に接続する", items: ["「設定」→「はじめに」の手順で、画像AIに web-app-cors を入れ、文章AIで CORS をオンにします。", "右上の「文章AI」「画像AI」が緑になればつながっています。あとからAIを起動したときは「更新」を押します。"] },
     { title: "お気に入りの1枚から始める", items: ["左の「① ベース画像」に画像をドロップすると、その画像の設定を右の「画像の共通設定」に流し込みます。", "品質タグを除いた残りのプロンプトでシーン1を作るので、あとはプロンプトを変えて生成するだけです。", "品質タグ・ネガティブがすでに入っているときは上書きしません（画像の内容にするときは「もう一度流し込む」）。", "「シードも引き継ぐ」をオンにして「もう一度流し込む」と、シードもベースと同じにします。"] },
     { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・登場人物・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、まず全シーンの画像を指定枚数ずつ作り、作り終えたら文章AIが全シーンをまとめてチェックします。合格がないシーンだけ作り直して、またチェックします。"] },
-    { title: "自分で組んだプロンプトを順番に作る", items: ["「＋ シーンを追加」でシーンを並べ、プロンプトを書きます。チェックを切れば、指定枚数を順番に作るだけの補助ツールになります。", "日本語のタイトル・ナレーションだけ書いて「✦ 文から書き直す」を押すと、そのシーンのプロンプトだけを文章AIが書きます。", "「このシーンだけの設定」で、枚数・大きさ（横長の構図だけ横向きなど）・シード（お気に入りのシードを固定）・追加のネガティブを変えられます。"] },
+    { title: "自分で組んだプロンプトを順番に作る", items: ["「＋ シーンを追加」でシーンを並べ、プロンプトを書きます。チェックを切れば、指定枚数を順番に作るだけの補助ツールになります。", "日本語のタイトル・ナレーションだけ書いて「✦ 文から書き直す」を押すと、そのシーンのプロンプトだけを文章AIが書きます。", "「このシーンだけの設定」で、枚数・大きさ（横長の構図だけ横向きなど）・シード（お気に入りのシードを固定）・追加のネガティブを変えられます。", "シーンの順番は、見出しの左端の点々（取っ手）をドラッグして入れ替えます。ドラッグ中にほかのシーンがその場で動きます。"] },
     { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルをクリックするとその1枚が下に大きく出て、★（確定）が付きます。★ をもう一度押すと確定を外し、点数で自動に選びます。サムネイル右上の ✕ で、その画像を消せます。", "サムネイルをダブルクリックすると詳細が開き、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
     { title: "同じシチュを別のキャラで作る", items: ["「保存 ▾」→「シチュを保存」でシーンを保存し、キャラごとに「キャストを保存」しておきます。", "「開く」でシチュとキャストを開くと、組み合わせを入れ替えて同じシチュを何組でも作れます。"] },
     { title: "残す・共有する", items: ["作業の状態はブラウザに残りません。閉じる前に「保存 ▾」で保存してください。", "「セット」欄の「ダウンロード（ZIP）」か「Prompt Reel に投稿」で、各シーンの1枚を残します。", "「▶ 紙芝居」で、各シーンの1枚とナレーションを順番に全画面で見られます（← → キー・自動再生）。"] },
@@ -4444,15 +4460,140 @@ class RightPanel {
   }
 }
 
+// ===== DRAG SORT (REORDER BY DRAGGING, OTHERS MOVE LIVE) =====
+class DragSort {
+  constructor({ container, item, handle, id, onEnd, threshold = 5 }) {
+    this.o = { container, item, handle, id, onEnd, threshold };
+    this.down = (e) => this.start(e);
+    container.addEventListener("pointerdown", this.down);
+  }
+
+  destroy() {
+    this.o.container.removeEventListener("pointerdown", this.down);
+    this.stop?.();
+  }
+
+  items() {
+    return [...this.o.container.children].filter((el) => el.matches(this.o.item));
+  }
+
+  start(e) {
+    if (e.button !== 0) return;
+    const grip = e.target.closest(this.o.handle);
+    const el = grip?.closest(this.o.item);
+    if (!el || el.parentElement !== this.o.container) return;
+    e.preventDefault();
+    const c = this.o.container;
+    const doc = c.ownerDocument;
+    const win = doc.defaultView;
+    const before = this.items().map(this.o.id);
+    const s = { x: e.clientX, y: e.clientY, on: false, last: e, raf: 0 };
+    const local = (ev) => {
+      const r = c.getBoundingClientRect();
+      return { x: ev.clientX - r.left - c.clientLeft, y: ev.clientY - r.top - c.clientTop };
+    };
+    const flip = (els, first) => {
+      for (const sib of els) {
+        const f = first.get(sib);
+        const dx = f.x - sib.offsetLeft, dy = f.y - sib.offsetTop;
+        if (!dx && !dy) continue;
+        sib.style.transition = "none";
+        sib.style.transform = `translate(${dx}px, ${dy}px)`;
+        sib.getBoundingClientRect();
+        sib.style.transition = "transform .2s ease";
+        sib.style.transform = "";
+      }
+    };
+    const follow = () => {
+      const p = local(s.last);
+      el.style.transform = `translate(${s.ox + p.x - s.px - el.offsetLeft}px, ${s.oy + p.y - s.py - el.offsetTop}px)`;
+    };
+    const place = () => {
+      const p = local(s.last);
+      const cx = s.ox + p.x - s.px + el.offsetWidth / 2;
+      const cy = s.oy + p.y - s.py + el.offsetHeight / 2;
+      const sibs = this.items().filter((x) => x !== el);
+      const at = sibs.filter((x) => {
+        const sy = x.offsetTop + x.offsetHeight / 2;
+        if (Math.abs(sy - cy) < Math.min(x.offsetHeight, el.offsetHeight) / 2) return x.offsetLeft + x.offsetWidth / 2 < cx;
+        return sy < cy;
+      }).length;
+      const now = this.items().indexOf(el);
+      if (at !== now) {
+        const first = new Map(sibs.map((x) => [x, { x: x.offsetLeft, y: x.offsetTop }]));
+        const ref = sibs[at];
+        c.insertBefore(el, ref || sibs[sibs.length - 1].nextSibling);
+        flip(sibs, first);
+      }
+      follow();
+    };
+    const scroll = () => {
+      s.raf = 0;
+      if (!s.on) return;
+      const edge = 60, y = s.last.clientY, vh = win.innerHeight;
+      const dy = y < edge ? -(edge - y) / 3 : y > vh - edge ? (y - (vh - edge)) / 3 : 0;
+      if (!dy) return;
+      let box = c.parentElement;
+      while (box && box !== doc.body && !(box.scrollHeight > box.clientHeight && /(auto|scroll)/.test(win.getComputedStyle(box).overflowY))) box = box.parentElement;
+      if (box && box !== doc.body) box.scrollTop += dy; else win.scrollBy(0, dy);
+      place();
+      s.raf = win.requestAnimationFrame(scroll);
+    };
+    const move = (ev) => {
+      s.last = ev;
+      if (!s.on) {
+        if (Math.hypot(ev.clientX - s.x, ev.clientY - s.y) < this.o.threshold) return;
+        s.on = true;
+        c.classList.add("drag-sorting");
+        const p = local(e);
+        Object.assign(s, { px: p.x, py: p.y, ox: el.offsetLeft, oy: el.offsetTop });
+        el.classList.add("drag-lifted");
+        doc.body.classList.add("drag-active");
+      }
+      place();
+      if (!s.raf) s.raf = win.requestAnimationFrame(scroll);
+    };
+    const end = () => {
+      this.stop();
+      if (!s.on) return;
+      el.style.transition = "transform .2s ease";
+      el.style.transform = "";
+      const after = this.items().map(this.o.id);
+      win.setTimeout(() => {
+        el.classList.remove("drag-lifted");
+        c.classList.remove("drag-sorting");
+        for (const x of this.items()) { x.style.transition = ""; x.style.transform = ""; }
+        if (after.join("\n") !== before.join("\n")) this.o.onEnd(after);
+      }, 210);
+      const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+      doc.addEventListener("click", swallow, { capture: true, once: true });
+      win.setTimeout(() => doc.removeEventListener("click", swallow, { capture: true }), 0);
+    };
+    this.stop = () => {
+      doc.removeEventListener("pointermove", move);
+      doc.removeEventListener("pointerup", end);
+      doc.removeEventListener("pointercancel", end);
+      if (s.raf) win.cancelAnimationFrame(s.raf);
+      s.raf = 0;
+      doc.body.classList.remove("drag-active");
+      this.stop = null;
+    };
+    doc.addEventListener("pointermove", move);
+    doc.addEventListener("pointerup", end);
+    doc.addEventListener("pointercancel", end);
+  }
+}
+
 // ===== SCENE BOARD (ONE CARD PER SCENE) =====
 class SceneBoard {
   constructor(app) {
     this.app = app;
     this.root = $("scenes");
     this.cards = new Map();
+    this.sort = new DragSort({ container: this.root, item: ".scene", handle: ".drag-grip", id: (el) => el.dataset.scene, onEnd: (ids) => app.reorderScenes(ids) });
   }
 
-  destroy() { this.cards.clear(); this.root.replaceChildren(); }
+  destroy() { this.sort.destroy(); this.cards.clear(); this.root.replaceChildren(); }
 
   render() {
     const doc = this.app.doc;
@@ -4542,13 +4683,6 @@ class SceneBoard {
     customToggle.classList.add("custom-toggle");
     const previewSummary = h("summary", {}, previewLabel, customToggle);
     const previewDetails = h("details", { class: "preview-details", open: !!scene.customPrompt, ontoggle: () => AutoGrow.fitAll(preview) }, previewSummary, preview);
-    const move = (d) => {
-      const list = doc.scenes;
-      const j = index + d;
-      if (j < 0 || j >= list.length) return;
-      [list[index], list[j]] = [list[j], list[index]];
-      app.docChanged(true);
-    };
     // 登場人物: 1人ずつ区切り、出るかどうかと、要素（名前・作品 / 身体 / 服装）ごとに使うかを切り替える。出ないときは要素も使わない
     const castBox = h("div", { class: "cast-checks" }, ...doc.cast.map((c, i) => {
       const on = scene.cast.includes(c.id);
@@ -4581,11 +4715,10 @@ class SceneBoard {
     const rewrite = h("button", { class: "mini", text: L.rewriteScene, title: L.rewriteSceneTitle, onclick: () => app.rewriteScene(scene, { countIn, promptIn }) });
     const el = h("div", { class: "scene", "data-scene": scene.id },
       h("div", { class: "scene-head" },
+        h("span", { class: "drag-grip", title: L.dragTitle, "aria-hidden": "true" }),
         h("span", { class: "scene-no", text: String(index + 1) }),
         Form.text(scene, "title", () => { app.docChanged(false); app.setStrip.render(); }, { class: "title", placeholder: L.sceneTitle }),
         stat,
-        h("button", { class: "mini quiet", text: L.up, title: L.upTitle, onclick: () => move(-1), disabled: index === 0 }),
-        h("button", { class: "mini quiet", text: L.down, title: L.downTitle, onclick: () => move(1), disabled: index === doc.scenes.length - 1 }),
         h("button", { class: "mini quiet", text: L.duplicate, onclick: () => app.duplicateScene(scene) }),
         h("button", { class: "mini quiet", text: L.clearImages, onclick: () => app.clearScene(scene) }),
         h("button", { class: "mini quiet danger", text: L.remove, onclick: () => app.removeScene(scene) })),
@@ -5625,6 +5758,14 @@ class App {
     this.images.clear(scene.id);
     this.picks.delete(scene.id);
     this.sceneChanged(scene.id);
+  }
+
+  reorderScenes(ids) {
+    const byId = new Map(this.doc.scenes.map((sc) => [sc.id, sc]));
+    const next = ids.map((id) => byId.get(id)).filter(Boolean);
+    if (next.length !== this.doc.scenes.length) return;
+    this.doc.scenes.splice(0, this.doc.scenes.length, ...next);
+    this.docChanged(true);
   }
 
   removeScene(scene) {
