@@ -171,6 +171,8 @@ details[open] > summary { margin-bottom: 4px; }
 .prop-label { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .prop.top { align-items: start; }
 .prop.top .prop-label { padding-top: 5px; }
+#left-panel .prop { grid-template-columns: minmax(0, 1fr); gap: 4px; align-items: stretch; }
+#left-panel .prop .prop-label { padding-top: 0; }
 .clip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ===== TOGGLE SWITCH (ALL CHECKBOXES) ===== */
@@ -358,13 +360,23 @@ body.resizing * { user-select: none; }
 .override { color: var(--lamp); font-weight: 700; }
 .scene-media { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--thumb), 1fr)); gap: 6px; align-content: start; }
-.thumbs-empty { white-space: pre-line; flex: 1; min-height: 260px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; line-height: 1.8; border: 1px dashed var(--line-strong); border-radius: var(--radius-l); padding: 24px; text-align: center; }
+.thumbs-empty { white-space: pre-line; flex: 1; min-height: 260px; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; color: #9a9a9a; background: var(--stage); font-size: 13px; line-height: 1.8; border: none; border-radius: var(--radius-l); padding: 24px; text-align: center; }
 .scene-pick { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; border-radius: var(--radius-l); background: var(--stage); }
 .scene-pick-frame { padding: 0; border: none; background: transparent; min-height: 0; max-width: 100%; display: flex; justify-content: center; }
 .scene-pick-frame:hover:not(:disabled) { background: transparent; }
 .scene-pick-frame img { height: min(440px, 55vh); width: auto; max-width: 100%; object-fit: contain; display: block; border-radius: var(--radius-s); }
 .scene-pick-cap { font-size: 12px; color: #d8d8d8; }
 .scene-pick-empty { color: #9a9a9a; font-size: 12px; padding: 24px 8px; text-align: center; }
+.scene-pick.empty { flex: 1; min-height: 260px; justify-content: center; gap: 12px; }
+@keyframes ss-spin { to { transform: rotate(360deg); } }
+.scene-pick, .thumbs-empty, .nv-video-view { position: relative; }
+.scene.running .scene-pick::after, .scene.waiting .scene-pick::after, .scene.running .thumbs-empty::after, .scene.waiting .thumbs-empty::after, .nv-video-view.run::after, .nv-video-view.wait::after {
+  content: ""; position: absolute; top: 10px; right: 10px; width: 26px; height: 26px; box-sizing: border-box; border: 3px solid rgba(255, 255, 255, .22); border-top-color: var(--accent); border-radius: 50%; animation: ss-spin .9s linear infinite; pointer-events: none; z-index: 1; }
+.scene.waiting .scene-pick::after, .scene.waiting .thumbs-empty::after, .nv-video-view.wait::after { border-top-color: rgba(255, 255, 255, .7); animation-duration: 1.8s; }
+.scene.running .scene-pick.empty::after, .scene.waiting .scene-pick.empty::after, .scene.running .thumbs-empty::after, .scene.waiting .thumbs-empty::after, .nv-video-view.run:has(> .nv-video-empty)::after, .nv-video-view.wait:has(> .nv-video-empty)::after { position: static; width: 40px; height: 40px; order: -1; }
+.nv-voice-state.run::before, .nv-voice-state.wait::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 4px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: ss-spin .8s linear infinite; }
+.nv-voice-state.wait::before { animation-duration: 1.6s; opacity: .7; }
+.nv-voice-state.wait { color: var(--muted); }
 .thumb { position: relative; aspect-ratio: 1; border-radius: var(--radius-s); overflow: hidden; border: 2px solid transparent; background: var(--stage); padding: 0; cursor: pointer; min-height: 0; }
 .thumb:focus-visible { outline: 2px solid var(--accent-text); }
 .thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
@@ -671,13 +683,18 @@ body.drag-active, body.drag-active * { cursor: grabbing !important; -webkit-user
 .nv-noimage-switch { margin: 0; }
 .nv-noimage { padding: 24px 12px; text-align: center; color: #ddd; background: #111; font-size: 12px; }
 .scene.no-image .scene-run, .scene.no-image .preview-details, .scene.no-image .scene-extra { display: none; }
-.scene .nv-video { border-top: 1px dashed var(--line-strong); padding-top: 8px; }
+.scene > .nv-video { margin: 0 10px 10px; border-top: 1px dashed var(--line-strong); padding-top: 10px; display: flex; justify-content: flex-start; }
+.scene.no-image > .nv-video { display: none; }
+.thumbs.strip { display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; gap: 6px; padding-bottom: 4px; scroll-snap-type: x proximity; }
+.thumbs.strip .thumb { flex: 0 0 var(--thumb); width: var(--thumb); scroll-snap-align: start; }
+body.mode-novel .scene-media .scene-pick { flex: 1; justify-content: center; }
+body.mode-novel .scene-media .nv-pick-open { margin-top: auto; }
 .nv-video-sec { margin: 0 10px 10px; padding: 8px 10px 10px; border: 1px solid var(--line-strong); border-left: 4px solid var(--ok, var(--accent)); background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
 .nv-video-sec[hidden] { display: none; }
-.nv-video-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 44%); gap: 10px; align-items: start; }
+.nv-video-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 44%); gap: 10px; align-items: stretch; }
 .nv-video-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.nv-video-view { display: flex; align-items: center; justify-content: center; min-height: 120px; background: var(--stage, #111); }
-.nv-video-view .nv-video-preview { display: block; width: 100%; max-height: 360px; object-fit: contain; background: #000; }
+.nv-video-view { display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; min-height: 220px; background: var(--stage, #111); }
+.nv-video-view .nv-video-preview { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-height: none; object-fit: contain; background: #000; }
 .nv-video-view .nv-video-empty { color: #ddd; padding: 12px; text-align: center; }
 .nv-video-takes { display: flex; flex-direction: column; gap: 4px; }
 .nv-video-sec.drop-on, #picker.drop-on .picker-body, #takes.drop-on .takes-body { outline: 2px dashed var(--accent); outline-offset: -4px; }
@@ -1440,7 +1457,7 @@ install()
       model: "", vae: "Automatic", textEncoder: "Automatic", width: 832, height: 1216,
       settings: { sampler: "Euler a", scheduler: "Automatic", steps: 28, cfg: 6, seed: -1, clipSkip: 2 },
     },
-    run: { perScene: 30, check: true, threshold: 70, strictScene: true, matchThreshold: 70, autoExtra: true, keepRejected: true, target: "all" },
+    run: { perScene: 6, check: true, threshold: 70, strictScene: true, matchThreshold: 70, autoExtra: true, keepRejected: true, target: "all" },
     cast: [{ id: "c1", name: "", ident: "", body: "", outfit: "", note: "", voice: { mode: "caption", caption: "", seed: "" } }],
     locations: [],
     scenes: [],
@@ -1453,6 +1470,7 @@ install()
   autoExtra: { maxRounds: 3 },
   anatomyScoreCap: 20,
   textGrowMaxPx: 240,
+  dblClickWaitMs: 260,
   resizeGripPx: 18,
   limits: { sceneCount: [1, 40], perScene: [1, 500], threshold: [0, 100], matchThreshold: [0, 100], steps: [1, 150], cfg: [1, 30], clipSkip: [1, 12], side: [256, 4096], temperature: [0, 2], maxTokens: [256, 131072] },
   sliders: { perScene: [1, 100], threshold: [0, 100], matchThreshold: [0, 100], steps: [1, 80], cfg: [1, 15], side: [512, 2048], temperature: [0, 1.5] },
@@ -1831,6 +1849,8 @@ You receive the picture's title, what happens in it, the characters, the locatio
       videoMake: "この画像の動画を作る",
       videoRemake: "もう1本作る",
       videoSec: "ループ動画",
+      videoWait: "待機中",
+      voiceWait: "待機中",
       videoTakeNo: "{n}本目",
       videoTakeUse: "使う",
       videoTakeUsing: "使用中",
@@ -1949,8 +1969,6 @@ You receive the picture's title, what happens in it, the characters, the locatio
       castRegenImagesTitle: "この人物が出る画像の候補を消して、作り直します（見た目を変えたあとに使います）",
       castRegenVoices: "この人物の音声を作り直す",
       castRegenVoicesTitle: "この人物のセリフの音声を、いまの声の設定で作り直します（候補に追加し、新しいものを使います）",
-      castMoveLines: "セリフを付け替える…",
-      castMoveLinesTitle: "この人物のセリフを、ほかの人物か地の文に付け替えます",
       castLoad: "キャストを読み込む（差し替え）",
       castLoadTitle: "保存したキャストの JSON を読み込み、A・B… の順に中身（名前・見た目・声）を入れ替えます。シーンやセリフはそのままです",
       castSave: "キャストを保存",
@@ -2001,7 +2019,6 @@ You receive the picture's title, what happens in it, the characters, the locatio
       scenarioReplace: "いまの画像の並び（{n} 枚・生成した画像 {count} 枚・セリフと音声）を、読み込んだシナリオで置き換えます。登場人物・場所は、空いている欄だけ埋めます。よろしいですか？",
       scenarioBad: "シナリオとして読み取れませんでした（scenes の中に images と prompt がある JSON が必要です）。原稿として「原稿」欄に入れました。",
       castRegenConfirm: "「{name}」が出る画像 {n} 枚ぶんの候補（{count} 枚）を消して作り直します。よろしいですか？",
-      castMoved: "「{from}」のセリフ {n} 行を「{to}」に付け替えました。",
       voiceDropped: "「{who}」の声に、{kind}を読み込みました（{names}）。",
       voiceDropBad: "読み込めるのは、カセット（*.safetensors）か音声ファイル（wav・mp3・flac・ogg・m4a）です。",
       voiceKindCassette: "カセット",
@@ -2326,7 +2343,7 @@ You receive the picture's title, what happens in it, the characters, the locatio
     { title: "最初に接続する", items: ["「設定」→「はじめに」の手順で、画像AIに web-app-cors を入れ、文章AIで CORS をオンにします。", "右上の「文章AI」「画像AI」が緑になればつながっています。あとからAIを起動したときは「更新」を押します。"] },
     { title: "お気に入りの1枚から始める", items: ["左の「① ベース画像」に画像をドロップすると、その画像の設定を右の「画像の共通設定」に流し込みます。", "品質タグを除いた残りのプロンプトでシーン1を作るので、あとはプロンプトを変えて生成するだけです。", "品質タグ・ネガティブがすでに入っているときは上書きしません（画像の内容にするときは「もう一度流し込む」）。", "「シードも引き継ぐ」をオンにして「もう一度流し込む」と、シードもベースと同じにします。"] },
     { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・登場人物・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、まず全シーンの画像を指定枚数ずつ作り、作り終えたら文章AIが全シーンをまとめてチェックします。合格がないシーンだけ作り直して、またチェックします。"] },
-    { title: "ノベルゲームを作る（Prompt Reel に投稿）", items: ["左の「作り方」で「ノベルゲーム」を選びます。「② ストーリーと原稿」に指示を書くか原稿を貼り付け、画像の数を決めます。画像の大きさは、右の「画像の共通設定」→「縦横比」で、ループ動画にできる縦横比から選びます。", "「③ 登場人物」で人物ごとに声（キャプション・カセット・参照音声）を決めます。声の設定がない人物のセリフは、自動で進めるときには音声を作りません。あとから声を設定して「④ 音声を作る」の「ここから」を押せば、まだ音声のない行にまとめて付けられます。地の文を読む語り手の声もここで決めます。", "「⑤ 自動で作る」で作らない手順の「スキップ」をオンにし、左下の「▶ 生成を始める」を押します。① 構成 → ② 画像 → ③ セリフ → ④ 音声（Irodori-TTS）→ ⑤ ループ動画（ComfyUI の MiniMax H3 FL2VA）のうち、スキップしていない手順を順に進めます。「＋ 追加で再生成」で、できているものを残したまま画像・音声・動画の候補を作り足せます。", "ほかで作った画像・音声・動画は、それぞれの候補の一覧（動画は「ループ動画」の欄）にドロップすると候補に入ります。「▶ ゲームを試す」は Prompt Reel と同じ再生画面です。", "セリフの話し方（Irodori-TTS の絵文字）は、文章AIが画像のプロンプトの表情や状況から選びます。各行の「話し方」の欄で直せます。", "画像は各画像に1枚だけ出ます。「画像を選ぶ（N枚）」を押すと候補の一覧が開き、使う1枚を選んだり、「追加で生成」でさらに作ったりできます。", "音声は作り直すたびに候補として残ります。各行の「候補 N」で一覧を開き、聞き比べて使うものを選びます。「追加で作る」で、同じセリフをもう一度読ませます。", "別のAIにシナリオを書いてもらうときは、「別のAIへの依頼文をダウンロード」で依頼文を渡します。返ってきたシナリオの JSON（ファイルでも、返事を保存したテキストでも可）を画面にドロップすると、登場人物・場所・シーン・画像のプロンプト・セリフ・話し方をすべて流し込みます。あとは「▶ 生成を始める」で、足りない画像・音声・動画を作って完成させます。", "登場人物はあとから差し替えられます。「③ 登場人物」で見た目や声を直し、「この人物の画像を作り直す」「この人物の音声を作り直す」で作り直します。セリフはほかの人物や地の文に付け替えられ、「キャストを読み込む（差し替え）」で人物をまとめて入れ替えることもできます。", "続きはあとからでも作れます。「保存 ▾」→「画像も含めて保存（ZIP）」は、画像の候補・音声の候補・ループ動画まで保存します。「ZIP（JSON＋素材）」で書き出したゲームの ZIP（または展開したフォルダ）を開いても、選んだ画像・音声・動画から続きを作れます。"] },
+    { title: "ノベルゲームを作る（Prompt Reel に投稿）", items: ["左の「作り方」で「ノベルゲーム」を選びます。「② ストーリーと原稿」に指示を書くか原稿を貼り付け、画像の数を決めます。画像の大きさは、右の「画像の共通設定」→「縦横比」で、ループ動画にできる縦横比から選びます。", "「③ 登場人物」で人物ごとに声（キャプション・カセット・参照音声）を決めます。声の設定がない人物のセリフは、自動で進めるときには音声を作りません。あとから声を設定して「④ 音声を作る」の「ここから」を押せば、まだ音声のない行にまとめて付けられます。地の文を読む語り手の声もここで決めます。", "「⑤ 自動で作る」で作らない手順の「スキップ」をオンにし、左下の「▶ 生成を始める」を押します。① 構成 → ② 画像 → ③ セリフ → ④ 音声（Irodori-TTS）→ ⑤ ループ動画（ComfyUI の MiniMax H3 FL2VA）のうち、スキップしていない手順を順に進めます。「＋ 追加で再生成」で、できているものを残したまま画像・音声・動画の候補を作り足せます。", "ほかで作った画像・音声・動画は、それぞれの候補の一覧（動画は「ループ動画」の欄）にドロップすると候補に入ります。「▶ ゲームを試す」は Prompt Reel と同じ再生画面です。", "セリフの話し方（Irodori-TTS の絵文字）は、文章AIが画像のプロンプトの表情や状況から選びます。各行の「話し方」の欄で直せます。", "画像は各画像に1枚だけ出ます。「画像を選ぶ（N枚）」を押すと候補の一覧が開き、使う1枚を選んだり、「追加で生成」でさらに作ったりできます。", "音声は作り直すたびに候補として残ります。各行の「候補 N」で一覧を開き、聞き比べて使うものを選びます。「追加で作る」で、同じセリフをもう一度読ませます。", "別のAIにシナリオを書いてもらうときは、「別のAIへの依頼文をダウンロード」で依頼文を渡します。返ってきたシナリオの JSON（ファイルでも、返事を保存したテキストでも可）を画面にドロップすると、登場人物・場所・シーン・画像のプロンプト・セリフ・話し方をすべて流し込みます。あとは「▶ 生成を始める」で、足りない画像・音声・動画を作って完成させます。", "登場人物はあとから差し替えられます。「③ 登場人物」で見た目や声を直し、「この人物の画像を作り直す」「この人物の音声を作り直す」で作り直します。「キャストを読み込む（差し替え）」で人物をまとめて入れ替えることもできます。", "続きはあとからでも作れます。「保存 ▾」→「画像も含めて保存（ZIP）」は、画像の候補・音声の候補・ループ動画まで保存します。「ZIP（JSON＋素材）」で書き出したゲームの ZIP（または展開したフォルダ）を開いても、選んだ画像・音声・動画から続きを作れます。"] },
     { title: "自分で組んだプロンプトを順番に作る", items: ["「＋ シーンを追加」でシーンを並べ、プロンプトを書きます。チェックを切れば、指定枚数を順番に作るだけの補助ツールになります。", "日本語のタイトル・ナレーションだけ書いて「✦ 文から書き直す」を押すと、そのシーンのプロンプトだけを文章AIが書きます。", "「このシーンだけの設定」で、枚数・大きさ（横長の構図だけ横向きなど）・シード（お気に入りのシードを固定）・追加のネガティブを変えられます。", "シーンの順番は、見出しの左端の点々（取っ手）をドラッグして入れ替えます。ドラッグ中にほかのシーンがその場で動きます。"] },
     { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルをクリックするとその1枚が下に大きく出て、★（確定）が付きます。★ をもう一度押すと確定を外し、点数で自動に選びます。サムネイル右上の ✕ で、その画像を消せます。", "サムネイルをダブルクリックすると詳細が開き、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
     { title: "同じシチュを別のキャラで作る", items: ["「保存 ▾」→「シチュを保存」でシーンを保存し、キャラごとに「キャストを保存」しておきます。", "「開く」でシチュとキャストを開くと、組み合わせを入れ替えて同じシチュを何組でも作れます。"] },
@@ -5260,7 +5277,7 @@ class NovelRunner {
     const e = this.app.voices.get(line.id);
     const t = this.take(line);
     if (!this.voiced(line)) return { state: "skip", e, t };
-    if (e?.state === "run") return { state: "run", e, t };
+    if (e?.state === "run" || e?.state === "wait") return { state: e.state, e, t };
     if (t && t.sig === this.voiceSig(line)) return { state: "done", e, t };
     if (e?.state === "error") return { state: "error", e, t };
     return { state: "stale", e, t };
@@ -5299,7 +5316,7 @@ class NovelRunner {
     const e = this.app.videos.get(scene.id);
     const t = this.videoTake(scene);
     if (!scene.loop || scene.noImage) return { state: "skip", e, t };
-    if (e?.state === "run") return { state: "run", e, t };
+    if (e?.state === "run" || e?.state === "wait") return { state: e.state, e, t };
     if (t && t.sig === this.videoSig(scene)) return { state: "done", e, t };
     if (e?.state === "error") return { state: "error", e, t };
     return { state: "stale", e, t };
@@ -5568,6 +5585,12 @@ class NovelRunner {
     if (ready.state !== "ok") throw Guide.fail(ready.text, "settingsVoice");
     await app.runner.freeImageVram();
     let made = 0;
+    const waiting = [...new Set(todo)];
+    for (const l of waiting) {
+      app.voices.set(l.id, { ...(app.voices.get(l.id) || { takes: [], pick: null }), state: "wait" });
+      app.board.updateVoice(l.id);
+    }
+    try {
     for (let i = 0; i < todo.length; i++) {
       const line = todo[i];
       app.phase("voice", fmt(NM.voiceRunning, { i: i + 1, n: todo.length, state: "" }));
@@ -5581,7 +5604,7 @@ class NovelRunner {
         const out = await client.speak(body, signal, (st) => app.status(fmt(NM.voiceRunning, { i: i + 1, n: todo.length, state: st.state === "retry" ? fmt(NM.voiceRetry, { n: st.n }) : st.state === "queued" ? fmt(NM.voiceQueued, { n: st.queue_position || 1 }) : `${st.note || ""} ${Math.round(st.elapsed || 0)}s` })));
         const take = { id: "t" + uid(), blob: out.blob, url: URL.createObjectURL(out.blob), duration: out.duration, sig, at: Date.now() };
         const keep = keepPick && e.takes.some((t) => t.id === e.pick && t.sig === sig);
-        app.voices.set(line.id, { takes: [...e.takes, take], pick: keep ? e.pick : take.id, state: "", error: "" });
+        app.voices.set(line.id, { takes: [...e.takes, take], pick: keep ? e.pick : take.id, state: todo.indexOf(line, i + 1) > i ? "wait" : "", error: "" });
         made++;
       } catch (err) {
         app.voices.set(line.id, { ...e, state: err?.name === "AbortError" ? "" : "error", error: Guide.text(err, "voice") });
@@ -5590,6 +5613,12 @@ class NovelRunner {
       }
       app.board.updateVoice(line.id);
       app.left.paintSteps();
+    }
+    } finally {
+      for (const l of waiting) {
+        const e = app.voices.get(l.id);
+        if (e?.state === "wait") { e.state = ""; app.board.updateVoice(l.id); }
+      }
     }
     app.progress(1);
     app.notice(fmt(NM.voiceDone, { n: made }), "ok");
@@ -5655,6 +5684,11 @@ class NovelRunner {
     }
     const noPick = todo.find((s) => !app.pickOf(s.id));
     if (noPick) { app.notice(fmt(NM.scriptNeedPicks, { list: `#${doc.scenes.indexOf(noPick) + 1}` }), "warn", `scene:${noPick.id}`); return false; }
+    for (const s of todo) {
+      app.videos.set(s.id, { ...(app.videos.get(s.id) || { takes: [], pick: null }), state: "wait" });
+      app.board.paintVideo(s.id);
+    }
+    try {
     const client = app.videoClient();
     const state = await Net.probe(client.probeUrl);
     if (state !== "ok") throw Guide.fail(state === "cors" ? NM.videoCors : fmt(NM.videoDown, { url: client.base }), "settingsVideo");
@@ -5701,6 +5735,12 @@ class NovelRunner {
       }
       app.board.paintVideo(s.id);
       app.left.paintSteps();
+    }
+    } finally {
+      for (const s of todo) {
+        const e = app.videos.get(s.id);
+        if (e?.state === "wait") { e.state = ""; app.board.paintVideo(s.id); }
+      }
     }
     app.progress(1);
     app.notice(fmt(NM.videoDone, { n: todo.length }), "ok");
@@ -6272,16 +6312,12 @@ class LeftPanel {
     const doc = app.doc;
     const scenes = doc.scenes.filter((s) => s.cast.includes(p.id));
     const lines = doc.scenes.flatMap((s) => s.lines).filter((l) => l.who === p.id && l.text.trim());
-    const move = h("select", { class: "cast-move", title: NL.castMoveLinesTitle, disabled: !lines.length });
-    fillSelect(move, [["", NL.castMoveLines], [NV.narrator, NL.narratorName], ...doc.cast.filter((c) => c !== p).map((c) => [c.id, `${letter(doc.cast.indexOf(c))}. ${c.name || L.castUnnamed}`])], "");
-    move.addEventListener("change", () => { if (move.value) app.moveLines(p.id, move.value); });
     const busy = app.runner.busy || app.novel.busy;
     return h("div", { class: "cast-tools", "data-cast": p.id },
       h("p", { class: "note keep cast-usage", text: fmt(NL.castUsage, { images: scenes.length, lines: lines.length }) }),
       h("div", { class: "row" },
         h("button", { class: "mini", text: NL.castRegenImages, title: NL.castRegenImagesTitle, disabled: !scenes.length || busy, onclick: () => app.regenCastImages(p) }),
-        h("button", { class: "mini", text: NL.castRegenVoices, title: NL.castRegenVoicesTitle, disabled: !lines.length || busy, onclick: () => app.novel.makeVoices(lines) })),
-      move);
+        h("button", { class: "mini", text: NL.castRegenVoices, title: NL.castRegenVoicesTitle, disabled: !lines.length || busy, onclick: () => app.novel.makeVoices(lines) })));
   }
 
   // 名前は打つたびにシーンを描き直すと重いので、入力欄から離れたとき（Enter を含む）にシーンへ反映する
@@ -6750,7 +6786,7 @@ class SceneBoard {
     const nr = app.novel;
     const { state, e, t } = nr.voiceState(line);
     const n = e?.takes?.length || 0;
-    const text = { skip: NL.voiceSkip, run: NL.voiceRun, error: NL.voiceError, done: fmt(NL.voiceDone, { sec: (t?.duration || 0).toFixed(1) }), stale: NL.voiceStale }[state];
+    const text = { skip: NL.voiceSkip, run: NL.voiceRun, wait: NL.voiceWait, error: NL.voiceError, done: fmt(NL.voiceDone, { sec: (t?.duration || 0).toFixed(1) }), stale: NL.voiceStale }[state];
     row.querySelector(".nv-voice").replaceChildren(
       h("button", { class: "mini quiet", text: NL.voicePlay, title: NL.voicePlayTitle, disabled: !t?.url, onclick: () => nr.play(t.url) }),
       h("span", { class: `nv-voice-state ${state}`, text, title: e?.error || "" }),
@@ -6780,14 +6816,14 @@ class SceneBoard {
     const playing = sec.querySelector(".nv-video-preview");
     const view = t?.url && playing?.getAttribute("src") === t.url ? playing
       : t?.url ? h("video", { class: "nv-video-preview", src: t.url, loop: true, muted: !sound, autoplay: true, playsInline: true, controls: true })
-        : h("p", { class: `note keep nv-video-empty${state === "error" ? " err" : ""}`, text: state === "run" ? NL.videoRun : state === "error" ? e.error : pick ? NL.videoNone : NL.videoNeedPick });
+        : h("p", { class: `note keep nv-video-empty${state === "error" ? " err" : ""}`, text: state === "run" ? NL.videoRun : state === "wait" ? NL.videoWait : state === "error" ? e.error : pick ? NL.videoNone : NL.videoNeedPick });
     const side = h("div", { class: "nv-video-side" },
       Form.field(NL.videoMotion, Form.text(scene, "motion", changed, { placeholder: NL.videoMotionPlaceholder })),
       h("details", { class: "nv-video-prompt", open: !!scene.videoPrompt.trim() }, h("summary", { text: NL.videoPrompt }), Form.text(scene, "videoPrompt", changed, { rows: 4, "data-key": "videoPrompt" })),
       h("div", { class: "row" },
         h("button", { class: "mini primary", text: takes.length ? NL.videoRemake : NL.videoMake, disabled: !pick || busy, onclick: () => nr.makeVideos([sceneId]) }),
         fileButton(NL.videoAddFile, NV.video.fileAccept, (files) => nr.addVideoFiles(sceneId, files)),
-        state === "run" ? h("span", { class: "nv-voice-state run", text: NL.videoRun }) : null),
+        state === "run" || state === "wait" ? h("span", { class: `nv-voice-state ${state}`, text: state === "run" ? NL.videoRun : NL.videoWait }) : null),
       takes.length ? h("div", { class: "nv-video-takes" }, ...takes.map((x, i) => {
         const using = x.id === e.pick;
         return h("div", { class: `take-row${using ? " using" : ""}`, "data-take": x.id },
@@ -6797,7 +6833,7 @@ class SceneBoard {
           h("button", { class: "mini quiet danger", text: NL.videoTakeDelete, disabled: state === "run", onclick: () => nr.dropVideo(sceneId, x.id) }));
       })) : null,
       h("p", { class: "note", text: NL.videoDropNote }));
-    sec.replaceChildren(h("div", { class: "nv-lines-head", text: NL.videoSec }), h("div", { class: "nv-video-grid" }, side, h("div", { class: "nv-video-view" }, view)));
+    sec.replaceChildren(h("div", { class: "nv-lines-head", text: NL.videoSec }), h("div", { class: "nv-video-grid" }, side, h("div", { class: `nv-video-view ${state}` }, view)));
     AutoGrow.fitAll(sec);
   }
 
@@ -6941,7 +6977,7 @@ class SceneBoard {
           h("button", { class: "primary scene-run", text: L.runScene, disabled: app.runner.busy, onclick: () => app.run([scene.id]) })),
         media));
     const nv = pos ? this.novelArea(scene) : null;
-    if (nv) el.append(nv.videoSec, nv.el);
+    if (nv) el.append(nv.video, nv.videoSec, nv.el);
     this.cards.set(scene.id, { el, stat, media, preview, previewLabel, promptIn, lines: nv?.lines, video: nv?.video, videoSec: nv?.videoSec });
     this.updatePreview(scene.id);
     this.updateImages(scene.id);
@@ -7014,10 +7050,12 @@ class SceneBoard {
       const sw = Form.check(scene, "noImage", NL.noImage, () => { app.docChanged(false); this.updateImages(sceneId); this.paintVideo(sceneId); app.left.paintSteps(); });
       sw.classList.add("nv-noimage-switch");
       card.el.classList.toggle("no-image", !!scene.noImage);
+      const scrolled = card.media.querySelector(".thumbs.strip")?.scrollLeft || 0;
       if (scene.noImage) card.media.replaceChildren(sw, h("div", { class: "nv-noimage", text: NL.noImageNote }));
-      else card.media.replaceChildren(sw, this.pickView(sceneId, list, picked),
-        h("button", { class: "nv-pick-open", text: list.length ? fmt(NL.pickerOpen, { n: list.length }) : NL.pickerOpenEmpty, onclick: () => app.picker.open(sceneId) }),
-        ...(card.video ? [card.video] : []));
+      else card.media.replaceChildren(sw, ...(list.length ? [this.thumbs(sceneId, list, picked, null, { strip: true })] : []), this.pickView(sceneId, list, picked),
+        h("button", { class: "nv-pick-open", text: list.length ? fmt(NL.pickerOpen, { n: list.length }) : NL.pickerOpenEmpty, onclick: () => app.picker.open(sceneId) }));
+      const strip = card.media.querySelector(".thumbs.strip");
+      if (strip) strip.scrollLeft = scrolled;
       if (app.picker.sceneId === sceneId) app.picker.render();
       return;
     }
@@ -7028,18 +7066,26 @@ class SceneBoard {
     card.media.replaceChildren(this.thumbs(sceneId, list, picked), this.mediaRunButton(sceneId), this.pickView(sceneId, list, picked));
   }
 
-  thumbs(sceneId, list, picked, onPick = null) {
+  thumbs(sceneId, list, picked, onPick = null, { strip = false } = {}) {
     const app = this.app;
     const run = app.doc.run;
-    return h("div", { class: "thumbs" }, ...list.map((img, i) => {
+    return h("div", { class: strip ? "thumbs strip" : "thumbs" }, ...(strip ? [...list].reverse() : list).map((img) => {
+      const i = list.indexOf(img);
       const v = Judge.verdict(img, run);
       const badge = img.check?.anatomy ? L.anatomyNg : img.check?.state === "done" ? fmt(L.scorePt, { score: img.check.score }) : img.check?.state === "error" ? "!" : img.manual ? (v ? L.ok : L.ng) : `#${i + 1}`;
       const pinned = app.picks.get(sceneId) === img.id;
       const cls = ["thumb", v === true ? "ok" : v === false ? "ng" : "pending", img === picked ? "picked" : "", pinned ? "pinned" : ""].filter(Boolean).join(" ");
       const select = () => (onPick ? onPick(img.id) : this.selectImage(sceneId, img.id));
+      let timer = 0;
+      const click = () => {
+        if (!strip) { select(); return; }
+        clearTimeout(timer);
+        timer = setTimeout(select, USER_SETTINGS.dblClickWaitMs);
+      };
+      const open = () => { clearTimeout(timer); app.viewer.open(sceneId, img.id); };
       const ck = img.check;
       const tip = [`#${i + 1}`, ck?.state === "done" ? fmt(L.scorePt, { score: ck.score }) : ck?.error, ck?.anatomy ? L.anatomyNg : "", Number.isFinite(ck?.match) ? fmt(L.matchPct, { v: ck.match }) : "", ...(ck?.issues || []), ...(ck?.missing || []), L.thumbHint].filter(Boolean).join("\n");
-      return h("div", { class: cls, title: tip, role: "button", tabindex: 0, "data-image": img.id, onclick: select, ondblclick: () => app.viewer.open(sceneId, img.id), onkeydown: (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); select(); } } },
+      return h("div", { class: cls, title: tip, role: "button", tabindex: 0, "data-image": img.id, onclick: click, ondblclick: open, onkeydown: (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); select(); } } },
         h("img", { src: img.thumb, alt: "", loading: "lazy" }),
         h("span", { class: `badge ${v === true ? "ok" : v === false ? "ng" : ""}`, text: badge }),
         h("button", { class: "pin", text: "★", title: L.pinTitle, "aria-pressed": String(pinned), disabled: !img.blob, onclick: (e) => { e.stopPropagation(); app.togglePin(sceneId, img.id); app.sceneChanged(sceneId); } }),
@@ -7076,7 +7122,7 @@ class SceneBoard {
   }
 
   pickView(sceneId, list, picked) {
-    if (!picked) return h("div", { class: "scene-pick" }, h("div", { class: "scene-pick-empty", text: L.pickNone }));
+    if (!picked) return h("div", { class: "scene-pick empty" }, h("div", { class: "scene-pick-empty", text: L.pickNone }));
     const app = this.app;
     const score = picked.check?.state === "done" ? fmt(L.scorePt, { score: picked.check.score }) : L.viewerUnchecked;
     const mode = app.picks.get(sceneId) === picked.id ? L.setPinned : L.setAuto;
@@ -7085,8 +7131,11 @@ class SceneBoard {
       h("div", { class: "scene-pick-cap", text: fmt(L.pickCap, { no: list.indexOf(picked) + 1, score, mode }) }));
   }
 
-  setRunning(sceneId) {
-    for (const [id, card] of this.cards) card.el.classList.toggle("running", id === sceneId);
+  setRunning(sceneId, waiting = []) {
+    for (const [id, card] of this.cards) {
+      card.el.classList.toggle("running", id === sceneId);
+      card.el.classList.toggle("waiting", id !== sceneId && waiting.includes(id));
+    }
     if (sceneId) this.cards.get(sceneId)?.el.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
@@ -8278,16 +8327,6 @@ class App {
     return true;
   }
 
-  moveLines(fromId, toId) {
-    const lines = this.doc.scenes.flatMap((s) => s.lines).filter((l) => l.who === fromId);
-    lines.forEach((l) => { l.who = toId; });
-    this.dirty = true;
-    this.board.paintNovel();
-    this.left.render();
-    this.left.paintSteps();
-    this.notice(fmt(NM.castMoved, { from: NovelWriter.nameOf(this.doc, fromId), to: NovelWriter.nameOf(this.doc, toId), n: lines.length }), "ok");
-  }
-
   downloadRequest() {
     const text = NovelWriter.requestText(this.doc);
     downloadBlob(new Blob([text], { type: "text/markdown" }), fmt(NV.requestFile, { title: safeName(this.doc.title) || "novel" }));
@@ -8535,7 +8574,7 @@ class App {
     if (!running) this.progress($("run-bar").style.width === "100%" ? 1 : 0);
   }
 
-  markRunning(sceneId) { this.board.setRunning(sceneId); }
+  markRunning(sceneId) { this.board.setRunning(sceneId, sceneId ? this.runner.plan.map((p) => p.id) : []); }
 
   // PICKS
   pickOf(sceneId) {
