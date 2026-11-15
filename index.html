@@ -683,6 +683,9 @@ dialog#picker { width: min(1200px, 94vw); height: fit-content; max-height: 92dvh
 .takes-foot { align-items: center; gap: 8px; }
 .takes-count { width: 80px; }
 .request-row { flex-wrap: wrap; gap: 4px; }
+.cast-tools { border-top: 1px dashed var(--line-strong); padding-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+.cast-tools .row { flex-wrap: wrap; gap: 4px; }
+.cast-usage { margin: 0; }
 body.mode-novel .scene-fields > .scene-run { display: block; }
 @media (max-width: 900px) { .picker-main { grid-template-columns: minmax(0, 1fr); } }
 .nv-line .nv-who { min-width: 0; }
@@ -736,7 +739,7 @@ body.mode-novel .run-row { grid-template-columns: 1fr; }
   <label class="check help-toggle" title="オフにすると、画面の説明文を隠します（使い慣れた人向け）"><input type="checkbox" id="help-toggle" checked> 説明</label>
   <button class="help-btn" id="btn-show" title="各シーンの1枚を順番に全画面で見ます">▶ 紙芝居</button>
   <button class="help-btn" id="btn-help">？ ツールの使い方</button>
-  <input type="file" id="file-open" accept=".json,application/json,.zip,application/zip,image/png,image/jpeg,image/webp" multiple hidden>
+  <input type="file" id="file-open" accept=".json,application/json,.txt,.md,text/plain,text/markdown,.zip,application/zip,image/png,image/jpeg,image/webp" multiple hidden>
   <input type="file" id="file-folder" webkitdirectory multiple hidden>
   <input type="file" id="file-base" accept="image/png,image/jpeg,image/webp" hidden>
 </header>
@@ -1595,6 +1598,7 @@ Output ONLY one JSON object, with exactly one entry per picture, in order:
 - 1枚の絵に描くのは、1つの瞬間です。登場人物は3人までにしてください。
 - 画像の縦横比は {aspect} です。構図はこの比率に合わせてください。
 - 地の文の話者は "narrator" です。
+- 下の登場人物・場所は、決まっているものです。記号（A・B… / 1・2…）をそのまま使ってください。足りなければ、続きの記号で新しい登場人物・場所を作ってかまいません。
 
 ## 登場人物
 
@@ -1610,6 +1614,20 @@ Output ONLY one JSON object, with exactly one entry per picture, in order:
 {
   "title": "ゲームのタイトル",
   "synopsis": "あらすじ（1〜2文）",
+  "cast": [
+    {
+      "id": "A",
+      "name": "名前",
+      "note": "性格・立場など（日本語）",
+      "ident": "英語のキャラクター名・作品名（オリジナルなら空）",
+      "body": "英語の身体的特徴タグ（髪・目・体格など）",
+      "outfit": "英語の服装タグ",
+      "voice": "声と話し方（日本語。例: 若い女性の声。明るく、はきはきと話す。）"
+    }
+  ],
+  "locations": [
+    { "id": "1", "name": "場所の名前", "note": "説明（日本語）", "prompt": "英語の場所のタグ" }
+  ],
   "scenes": [
     {
       "title": "シーンの名前",
@@ -1635,6 +1653,8 @@ Output ONLY one JSON object, with exactly one entry per picture, in order:
 
 各項目の決まり:
 
+- cast（いちばん上）: 物語に出るすべての登場人物。上の「登場人物」に書いた人は、同じ記号と名前で入れます（見た目や声が空のところは考えて埋めてください）。ident・body・outfit は {style}
+- locations（いちばん上）: 物語に出るすべての場所。上の「場所」に書いた場所は同じ番号で入れます。
 - cast: その絵に出る登場人物の記号（A・B…）。いなければ []。
 - location: 場所の番号（"1" など）。合う場所がなければ "" にして、場所の様子を prompt に書きます。
 - count: 絵の人数のタグ。"1girl"・"1boy, 1girl"・"2girls"・"no humans" など。
@@ -1684,10 +1704,10 @@ You receive the picture's title, what happens in it, the characters, the locatio
       linesMin: "最少セリフ",
       linesMax: "最多セリフ",
       autoUntil: "自動で進める範囲",
-      autoUntilNote: "「▶ 続きを自動で進める」や各手順の「ここから」で、ここまで自動で進めます。途中で画像を選び直したり、セリフを直したりしてから、次の手順だけを進めることもできます。",
+      autoUntilNote: "「▶ 生成を始める」や各手順の「ここから」で、ここまで自動で進めます。途中で画像を選び直したり、セリフを直したりしてから、次の手順だけを進めることもできます。",
       stageRun: "ここから",
       stageRunTitle: "この手順から、「自動で進める範囲」まで進めます",
-      runContinue: "▶ 続きを自動で進める",
+      runContinue: "▶ 生成を始める",
       runImages: "▶ 生成を始める",
       narrate: "地の文（narrator）も読み上げる",
       narratorVoice: "語り手（地の文）の声",
@@ -1823,8 +1843,18 @@ You receive the picture's title, what happens in it, the characters, the locatio
       saveNovelCastNote: "登場人物だけ（声の設定も）。開くと、シーンとセリフはそのままで A・B… の中身が入れ替わります",
       requestDownload: "別のAIへの依頼文をダウンロード",
       requestCopy: "依頼文をコピー",
-      requestNote: "ChatGPT・Claude など別のAIに原稿を書いてもらうときは、依頼文を渡します。返ってきた原稿（JSON）を「原稿」に貼り付けるか「原稿ファイルを読み込む」で読み込み、「① 構成を作る」を押すと、その原稿どおりに画像・セリフを並べます。",
-      manuscriptLoad: "原稿ファイルを読み込む",
+      requestNote: "ChatGPT・Claude など別のAIにシナリオを書いてもらうときは、依頼文を渡します。返ってきたシナリオ（JSON。保存したファイルでも、返事をそのまま保存したテキストでも可）を画面にドロップするか「シナリオ・原稿ファイルを読み込む」で読み込むと、登場人物・場所・シーン・画像のプロンプト・セリフ・話し方をすべて流し込みます。あとは「▶ 生成を始める」で、足りない画像・音声・動画を作ります。",
+      manuscriptLoad: "シナリオ・原稿ファイルを読み込む",
+      castUsage: "画像 {images} 枚に登場・セリフ {lines} 行",
+      castRegenImages: "この人物の画像を作り直す",
+      castRegenImagesTitle: "この人物が出る画像の候補を消して、作り直します（見た目を変えたあとに使います）",
+      castRegenVoices: "この人物の音声を作り直す",
+      castRegenVoicesTitle: "この人物のセリフの音声を、いまの声の設定で作り直します（候補に追加し、新しいものを使います）",
+      castMoveLines: "セリフを付け替える…",
+      castMoveLinesTitle: "この人物のセリフを、ほかの人物か地の文に付け替えます",
+      castLoad: "キャストを読み込む（差し替え）",
+      castLoadTitle: "保存したキャストの JSON を読み込み、A・B… の順に中身（名前・見た目・声）を入れ替えます。シーンやセリフはそのままです",
+      castSave: "キャストを保存",
       requestNone: "（なし）",
       stillmotionLink: "Irodori Bridge は Stillmotion の「設定」→「音声AI（Irodori）」からダウンロードできます（同じものを使います）。",
     },
@@ -1868,6 +1898,11 @@ You receive the picture's title, what happens in it, the characters, the locatio
       videoRejected: "ComfyUI がワークフローを受け付けませんでした（{status}）。MiniMax H3 のノードとモデル（設定の「動画AI（ComfyUI）」のファイル名）を確認してください。{text}",
       stageStopped: "中止しました。",
       manuscriptJson: "原稿の JSON から組み立てました（シーン {g}・画像 {n} 枚・セリフ {lines} 行）。",
+      scenarioLoaded: "シナリオ「{name}」を流し込みました（シーン {g}・画像 {n} 枚・セリフ {lines} 行・登場人物 {cast} 人（新しく {added} 人））。左下の「▶ 生成を始める」で、足りない画像・音声・動画を作ります。",
+      scenarioReplace: "いまの画像の並び（{n} 枚・生成した画像 {count} 枚・セリフと音声）を、読み込んだシナリオで置き換えます。登場人物・場所は、空いている欄だけ埋めます。よろしいですか？",
+      scenarioBad: "シナリオとして読み取れませんでした（scenes の中に images と prompt がある JSON が必要です）。原稿として「原稿」欄に入れました。",
+      castRegenConfirm: "「{name}」が出る画像 {n} 枚ぶんの候補（{count} 枚）を消して作り直します。よろしいですか？",
+      castMoved: "「{from}」のセリフ {n} 行を「{to}」に付け替えました。",
       manuscriptLoaded: "原稿を読み込みました（{name}）。",
       requestCopied: "依頼文をコピーしました。別のAIに貼り付けてください。",
       requestSaved: "依頼文をダウンロードしました。別のAIに渡してください。",
@@ -2174,7 +2209,7 @@ You receive the picture's title, what happens in it, the characters, the locatio
     { title: "最初に接続する", items: ["「設定」→「はじめに」の手順で、画像AIに web-app-cors を入れ、文章AIで CORS をオンにします。", "右上の「文章AI」「画像AI」が緑になればつながっています。あとからAIを起動したときは「更新」を押します。"] },
     { title: "お気に入りの1枚から始める", items: ["左の「① ベース画像」に画像をドロップすると、その画像の設定を右の「画像の共通設定」に流し込みます。", "品質タグを除いた残りのプロンプトでシーン1を作るので、あとはプロンプトを変えて生成するだけです。", "品質タグ・ネガティブがすでに入っているときは上書きしません（画像の内容にするときは「もう一度流し込む」）。", "「シードも引き継ぐ」をオンにして「もう一度流し込む」と、シードもベースと同じにします。"] },
     { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・登場人物・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、まず全シーンの画像を指定枚数ずつ作り、作り終えたら文章AIが全シーンをまとめてチェックします。合格がないシーンだけ作り直して、またチェックします。"] },
-    { title: "ノベルゲームを作る（Prompt Reel に投稿）", items: ["左の「作り方」で「ノベルゲーム」を選びます。「② ストーリーと原稿」に指示を書くか原稿を貼り付け、画像の数を決めます。画像の大きさは、右の「画像の共通設定」→「縦横比」で、ループ動画にできる縦横比から選びます。", "「③ 登場人物」で人物ごとに声（キャプション・カセット・参照音声）を決めます。声の設定がない人物のセリフは、自動で進めるときには音声を作りません。あとから声を設定して「④ 音声を作る」の「ここから」を押せば、まだ音声のない行にまとめて付けられます。地の文を読む語り手の声もここで決めます。", "「⑤ 自動で作る」の「自動で進める範囲」を選び、左下の「▶ 続きを自動で進める」を押します。① 構成 → ② 画像 → ③ セリフ → ④ 音声（Irodori-TTS）→ ⑤ ループ動画（ComfyUI の MiniMax H3 FL2VA）の順に進みます。", "セリフの話し方（Irodori-TTS の絵文字）は、文章AIが画像のプロンプトの表情や状況から選びます。各行の「話し方」の欄で直せます。", "画像は各画像に1枚だけ出ます。「画像を選ぶ（N枚）」を押すと候補の一覧が開き、使う1枚を選んだり、「追加で生成」でさらに作ったりできます。", "音声は作り直すたびに候補として残ります。各行の「候補 N」で一覧を開き、聞き比べて使うものを選びます。「追加で作る」で、同じセリフをもう一度読ませます。", "別のAIに原稿を書いてもらうときは、「別のAIへの依頼文をダウンロード」で依頼文を渡します。返ってきた原稿（JSON）を「原稿」に貼り付けるか「原稿ファイルを読み込む」で読み込み、「① 構成を作る」を押すと、原稿どおりに画像とセリフを並べます。", "続きはあとからでも作れます。「保存 ▾」→「画像も含めて保存（ZIP）」は、画像の候補・音声の候補・ループ動画まで保存します。「ZIP（JSON＋素材）」で書き出したゲームの ZIP（または展開したフォルダ）を開いても、選んだ画像・音声・動画から続きを作れます。"] },
+    { title: "ノベルゲームを作る（Prompt Reel に投稿）", items: ["左の「作り方」で「ノベルゲーム」を選びます。「② ストーリーと原稿」に指示を書くか原稿を貼り付け、画像の数を決めます。画像の大きさは、右の「画像の共通設定」→「縦横比」で、ループ動画にできる縦横比から選びます。", "「③ 登場人物」で人物ごとに声（キャプション・カセット・参照音声）を決めます。声の設定がない人物のセリフは、自動で進めるときには音声を作りません。あとから声を設定して「④ 音声を作る」の「ここから」を押せば、まだ音声のない行にまとめて付けられます。地の文を読む語り手の声もここで決めます。", "「⑤ 自動で作る」の「自動で進める範囲」を選び、左下の「▶ 生成を始める」を押します。① 構成 → ② 画像 → ③ セリフ → ④ 音声（Irodori-TTS）→ ⑤ ループ動画（ComfyUI の MiniMax H3 FL2VA）の順に進みます。", "セリフの話し方（Irodori-TTS の絵文字）は、文章AIが画像のプロンプトの表情や状況から選びます。各行の「話し方」の欄で直せます。", "画像は各画像に1枚だけ出ます。「画像を選ぶ（N枚）」を押すと候補の一覧が開き、使う1枚を選んだり、「追加で生成」でさらに作ったりできます。", "音声は作り直すたびに候補として残ります。各行の「候補 N」で一覧を開き、聞き比べて使うものを選びます。「追加で作る」で、同じセリフをもう一度読ませます。", "別のAIにシナリオを書いてもらうときは、「別のAIへの依頼文をダウンロード」で依頼文を渡します。返ってきたシナリオの JSON（ファイルでも、返事を保存したテキストでも可）を画面にドロップすると、登場人物・場所・シーン・画像のプロンプト・セリフ・話し方をすべて流し込みます。あとは「▶ 生成を始める」で、足りない画像・音声・動画を作って完成させます。", "登場人物はあとから差し替えられます。「③ 登場人物」で見た目や声を直し、「この人物の画像を作り直す」「この人物の音声を作り直す」で作り直します。セリフはほかの人物や地の文に付け替えられ、「キャストを読み込む（差し替え）」で人物をまとめて入れ替えることもできます。", "続きはあとからでも作れます。「保存 ▾」→「画像も含めて保存（ZIP）」は、画像の候補・音声の候補・ループ動画まで保存します。「ZIP（JSON＋素材）」で書き出したゲームの ZIP（または展開したフォルダ）を開いても、選んだ画像・音声・動画から続きを作れます。"] },
     { title: "自分で組んだプロンプトを順番に作る", items: ["「＋ シーンを追加」でシーンを並べ、プロンプトを書きます。チェックを切れば、指定枚数を順番に作るだけの補助ツールになります。", "日本語のタイトル・ナレーションだけ書いて「✦ 文から書き直す」を押すと、そのシーンのプロンプトだけを文章AIが書きます。", "「このシーンだけの設定」で、枚数・大きさ（横長の構図だけ横向きなど）・シード（お気に入りのシードを固定）・追加のネガティブを変えられます。", "シーンの順番は、見出しの左端の点々（取っ手）をドラッグして入れ替えます。ドラッグ中にほかのシーンがその場で動きます。"] },
     { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルをクリックするとその1枚が下に大きく出て、★（確定）が付きます。★ をもう一度押すと確定を外し、点数で自動に選びます。サムネイル右上の ✕ で、その画像を消せます。", "サムネイルをダブルクリックすると詳細が開き、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
     { title: "同じシチュを別のキャラで作る", items: ["「保存 ▾」→「シチュを保存」でシーンを保存し、キャラごとに「キャストを保存」しておきます。", "「開く」でシチュとキャストを開くと、組み合わせを入れ替えて同じシチュを何組でも作れます。"] },
@@ -4769,27 +4804,64 @@ class NovelWriter {
     return { title: str(obj.title), synopsis: str(obj.synopsis), scenes };
   }
 
+  static isScenario(obj) {
+    return !!obj && typeof obj === "object" && !Doc.isProject(obj) && Array.isArray(obj.scenes)
+      && obj.scenes.some((g) => g && typeof g === "object" && ((Array.isArray(g.images) && g.images.some((o) => o && typeof o.prompt === "string")) || typeof g.prompt === "string"));
+  }
+
+  static scenarioIn(text) {
+    try {
+      const obj = JSON.parse(text);
+      if (this.isScenario(obj)) return obj;
+    } catch {}
+    return LooseJson.candidates(String(text || "")).find((o) => this.isScenario(o)) || null;
+  }
+
+  static mergeCast(doc, list) {
+    let added = 0;
+    const str = (v) => (v == null ? "" : String(v)).trim();
+    (Array.isArray(list) ? list : []).filter((o) => o && typeof o === "object").forEach((o, k) => {
+      const key = str(o.id) || letter(k);
+      let c = doc.cast.find((x, i) => letter(i) === key.toUpperCase() || x.id === key) || doc.cast.find((x) => x.name && x.name.trim() === str(o.name));
+      if (!c) { c = Doc.person({}, "c"); doc.cast.push(c); added++; }
+      for (const f of ["name", "note", "ident", "body", "outfit"]) if (!str(c[f]) && str(o[f])) c[f] = str(o[f]);
+      const voice = typeof o.voice === "string" ? o.voice : o.voice?.caption;
+      if (c.voice.mode === "caption" && !str(c.voice.caption) && str(voice)) c.voice.caption = str(voice);
+    });
+    return added;
+  }
+
+  static mergeLocations(doc, list) {
+    const str = (v) => (v == null ? "" : String(v)).trim();
+    (Array.isArray(list) ? list : []).filter((o) => o && typeof o === "object").forEach((o, k) => {
+      const key = str(o.id) || String(k + 1);
+      let l = doc.locations.find((x, i) => String(i + 1) === key || x.id === key) || doc.locations.find((x) => x.name && x.name.trim() === str(o.name));
+      if (!l) { l = Doc.person({}, "l"); doc.locations.push(l); }
+      for (const f of ["name", "note", "prompt"]) if (!str(l[f]) && str(o[f])) l[f] = str(o[f]);
+    });
+  }
+
   static fromManuscript(doc) {
     const text = (doc.manuscript || "").trim();
     if (!text.includes("{")) return null;
-    for (const obj of LooseJson.candidates(text)) {
-      if (!Array.isArray(obj.scenes)) continue;
-      try { return this.acceptPlan(doc, obj); } catch {}
-    }
-    return null;
+    const obj = this.scenarioIn(text);
+    if (!obj) return null;
+    this.mergeCast(doc, obj.cast || obj.characters);
+    this.mergeLocations(doc, obj.locations);
+    try { return this.acceptPlan(doc, obj); } catch { return null; }
   }
 
   static requestText(doc) {
     const n = doc.novel;
     const aspect = NV.imageAspects.find(([k]) => k === n.aspect) || NV.imageAspects[0];
-    const person = (c, i) => `- ${letter(i)}: ${c.name || "(名前なし)"}${c.note ? ` ／ ${c.note}` : ""}${c.voice?.caption?.trim() ? ` ／ 声: ${c.voice.caption.trim()}` : ""}`;
+    const person = (c, i) => `- ${letter(i)}: ${c.name || "(名前なし)"}${c.note ? ` ／ ${c.note}` : ""}${c.voice?.caption?.trim() ? ` ／ 声: ${c.voice.caption.trim()}` : ""}${[c.ident, c.body, c.outfit].some((x) => x?.trim()) ? ` ／ 見た目: ${[c.ident, c.body, c.outfit].filter((x) => x?.trim()).join(", ")}` : ""}`;
     const cast = doc.cast.map((c, i) => [c, i]);
     return fmt(NV.requestTemplate, {
       title: doc.title || NL.requestNone,
       brief: [doc.brief.trim(), doc.manuscript.trim()].filter(Boolean).join("\n\n") || NL.requestNone,
       count: n.imageCount, min: n.linesMin, max: Math.max(n.linesMin, n.linesMax), aspect: aspect[1], maxEmo: NV.maxEmo,
       cast: cast.map(([c, i]) => person(c, i)).join("\n") || NL.requestNone,
-      locations: doc.locations.map((l, i) => `- ${i + 1}: ${l.name || "(名前なし)"}${l.note ? ` ／ ${l.note}` : ""}`).join("\n") || NL.requestNone,
+      locations: doc.locations.map((l, i) => `- ${i + 1}: ${l.name || "(名前なし)"}${l.note ? ` ／ ${l.note}` : ""}${l.prompt ? ` ／ ${l.prompt}` : ""}`).join("\n") || NL.requestNone,
       style: NV.requestStyle[doc.common.style] || NV.requestStyle.tags,
       emojis: NV.emojis.map(([e, a, b]) => `- ${e} ${a}（${b}）`).join("\n"),
     });
@@ -5117,6 +5189,7 @@ class NovelRunner {
       app.left.paintSteps();
     }
     app.progress(1);
+    app.board.render();
     app.notice(fmt(NM.scriptDone, { lines: total }), "ok");
     return true;
   }
@@ -5589,7 +5662,10 @@ class LeftPanel {
     const manuscript = Form.text(doc, "manuscript", () => this.changed(), { rows: 6, placeholder: NL.manuscriptPlaceholder, id: "manuscript" });
     const load = async (file) => {
       if (!file) return;
-      manuscript.value = await file.text();
+      const text = await file.text();
+      const scenario = NovelWriter.scenarioIn(text);
+      if (scenario) { app.importScenario(scenario, file.name); return; }
+      manuscript.value = text;
       manuscript.dispatchEvent(new Event("input"));
       AutoGrow.fit(manuscript);
       app.notice(fmt(NM.manuscriptLoaded, { name: file.name }), "ok");
@@ -5641,6 +5717,10 @@ class LeftPanel {
   }
 
   paintSteps() {
+    for (const el of this.root.querySelectorAll(".cast-tools[data-cast]")) {
+      const p = this.app.doc.cast.find((c) => c.id === el.dataset.cast);
+      if (p && !el.contains(el.ownerDocument.activeElement)) el.replaceWith(this.castTools(p));
+    }
     const sec = this.stepsEl;
     if (!sec) return;
     const nr = this.app.novel;
@@ -5751,6 +5831,7 @@ class LeftPanel {
         for (const s of this.app.doc.scenes) {
           if (isCast) s.cast = s.cast.filter((id) => id !== p.id);
           else if (s.location === p.id) s.location = "";
+          if (isCast) for (const l of s.lines) if (l.who === p.id) l.who = NV.narrator;
         }
         this.changed(true);
         this.render();
@@ -5762,7 +5843,25 @@ class LeftPanel {
         ? USER_SETTINGS.castParts.map((k) => Form.field(L.castPartNames[k], Form.text(p, k, () => this.changed(), { rows: 2, placeholder: L.castPartHints[k], "data-key": k })))
         : [Form.prop(L.locationPrompt, Form.text(p, "prompt", () => this.changed(), { rows: 2 }), { top: true })]),
       Form.prop(L.castNoteField, Form.text(p, "note", () => this.changed(), { placeholder: L.castNotePlaceholder })),
-      isCast && this.app.doc.mode === "novel" ? this.voiceBox(p.voice, p.id) : null);
+      isCast && this.app.doc.mode === "novel" ? this.voiceBox(p.voice, p.id) : null,
+      isCast && this.app.doc.mode === "novel" ? this.castTools(p) : null);
+  }
+
+  castTools(p) {
+    const app = this.app;
+    const doc = app.doc;
+    const scenes = doc.scenes.filter((s) => s.cast.includes(p.id));
+    const lines = doc.scenes.flatMap((s) => s.lines).filter((l) => l.who === p.id && l.text.trim());
+    const move = h("select", { class: "cast-move", title: NL.castMoveLinesTitle, disabled: !lines.length });
+    fillSelect(move, [["", NL.castMoveLines], [NV.narrator, NL.narratorName], ...doc.cast.filter((c) => c !== p).map((c) => [c.id, `${letter(doc.cast.indexOf(c))}. ${c.name || L.castUnnamed}`])], "");
+    move.addEventListener("change", () => { if (move.value) app.moveLines(p.id, move.value); });
+    const busy = app.runner.busy || app.novel.busy;
+    return h("div", { class: "cast-tools", "data-cast": p.id },
+      h("p", { class: "note keep cast-usage", text: fmt(NL.castUsage, { images: scenes.length, lines: lines.length }) }),
+      h("div", { class: "row" },
+        h("button", { class: "mini", text: NL.castRegenImages, title: NL.castRegenImagesTitle, disabled: !scenes.length || busy, onclick: () => app.regenCastImages(p) }),
+        h("button", { class: "mini", text: NL.castRegenVoices, title: NL.castRegenVoicesTitle, disabled: !lines.length || busy, onclick: () => app.novel.makeVoices(lines) })),
+      move);
   }
 
   // 名前は打つたびにシーンを描き直すと重いので、入力欄から離れたとき（Enter を含む）にシーンへ反映する
@@ -5772,6 +5871,21 @@ class LeftPanel {
     return el;
   }
 
+  castFileRow() {
+    const app = this.app;
+    const input = h("input", { type: "file", accept: ".json,application/json", hidden: true });
+    input.addEventListener("change", async () => {
+      const f = input.files?.[0];
+      input.value = "";
+      if (!f) return;
+      try { await app.swapCastFrom(await readJsonFile(f)); } catch { app.notice(M.loadFailed, "err"); }
+    });
+    return h("div", { class: "row request-row" },
+      h("button", { class: "small", text: NL.castLoad, title: NL.castLoadTitle, onclick: () => input.click() }),
+      h("button", { class: "small", text: NL.castSave, onclick: () => app.saveCast() }),
+      input);
+  }
+
   castSection() {
     const doc = this.app.doc;
     return Form.section("cast", L.secCast, [
@@ -5779,6 +5893,7 @@ class LeftPanel {
       h("p", { class: "note", text: L.castPromptNote }),
       ...doc.cast.map((p, i) => this.personItem(doc.cast, p, i, "cast")),
       h("button", { text: L.addCast, onclick: () => { doc.cast.push(Doc.person({}, "c")); this.changed(true); this.render(); } }),
+      doc.mode === "novel" ? this.castFileRow() : null,
       doc.mode === "novel" ? h("p", { class: "note", text: NL.silentNote }) : null,
       doc.mode === "novel" ? h("div", { class: "item narrator-item" },
         h("div", { class: "item-head" }, h("span", { class: "tag", text: "—" }), h("b", { text: NL.narratorVoice })),
@@ -7506,6 +7621,64 @@ class App {
     if (novel) this.probeNovel();
   }
 
+  importScenario(obj, name) {
+    if (this.runner.busy || this.novel.busy) { this.notice(M.runBusy, "warn"); return false; }
+    const doc = this.doc;
+    const count = doc.scenes.reduce((n, s) => n + this.images.list(s.id).length, 0);
+    if (doc.scenes.length && !confirm(fmt(NM.scenarioReplace, { n: doc.scenes.length, count }))) return false;
+    const added = NovelWriter.mergeCast(doc, obj.cast || obj.characters);
+    NovelWriter.mergeLocations(doc, obj.locations);
+    let out;
+    try {
+      out = NovelWriter.acceptPlan(doc, obj);
+    } catch {
+      this.notice(NM.scenarioBad, "err");
+      return false;
+    }
+    doc.mode = "novel";
+    if (typeof obj.title === "string" && obj.title.trim()) doc.title = obj.title.trim();
+    if (typeof obj.synopsis === "string" && obj.synopsis.trim()) doc.synopsis = obj.synopsis.trim();
+    doc.scenes = out.scenes;
+    doc.novel.imageCount = clamp(out.scenes.length, NV.limits.imageCount);
+    this.images.clearAll();
+    this.picks.clear();
+    this.clearNovelMedia();
+    this.dirty = true;
+    this.snapAspect();
+    this.left.render();
+    this.right.render();
+    this.renderAll();
+    this.applyMode();
+    const lines = out.scenes.reduce((n, s) => n + s.lines.length, 0);
+    this.notice(fmt(NM.scenarioLoaded, { name, g: Doc.groups(doc).length, n: out.scenes.length, lines, cast: doc.cast.length, added }), "ok");
+    return true;
+  }
+
+  async regenCastImages(person) {
+    const scenes = this.doc.scenes.filter((s) => s.cast.includes(person.id));
+    if (!scenes.length) return;
+    if (this.runner.busy || this.novel.busy) { this.notice(M.runBusy, "warn"); return; }
+    const count = scenes.reduce((n, s) => n + this.images.list(s.id).length, 0);
+    if (count && !confirm(fmt(NM.castRegenConfirm, { name: person.name || L.castUnnamed, n: scenes.length, count }))) return;
+    for (const s of scenes) {
+      this.images.clear(s.id);
+      this.picks.delete(s.id);
+      this.sceneChanged(s.id);
+    }
+    if (this.doc.mode === "novel") this.snapAspect();
+    await this.run(scenes.map((s) => s.id));
+  }
+
+  moveLines(fromId, toId) {
+    const lines = this.doc.scenes.flatMap((s) => s.lines).filter((l) => l.who === fromId);
+    lines.forEach((l) => { l.who = toId; });
+    this.dirty = true;
+    this.board.paintNovel();
+    this.left.render();
+    this.left.paintSteps();
+    this.notice(fmt(NM.castMoved, { from: NovelWriter.nameOf(this.doc, fromId), to: NovelWriter.nameOf(this.doc, toId), n: lines.length }), "ok");
+  }
+
   downloadRequest() {
     const text = NovelWriter.requestText(this.doc);
     downloadBlob(new Blob([text], { type: "text/markdown" }), fmt(NV.requestFile, { title: safeName(this.doc.title) || "novel" }));
@@ -8057,9 +8230,12 @@ class App {
     try {
       obj = await readJsonFile(file);
     } catch {
+      const scenario = NovelWriter.scenarioIn(await file.text());
+      if (scenario) return this.importScenario(scenario, file.name);
       this.notice(M.loadFailed, "err");
       return;
     }
+    if (NovelWriter.isScenario(obj)) return this.importScenario(obj, file.name);
     if (obj?.format === USER_SETTINGS.situationFormat) return this.openSituation(obj);
     if (obj?.format === USER_SETTINGS.castFormat) return this.swapCastFrom(obj);
     return this.openProject(file);
