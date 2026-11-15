@@ -1560,13 +1560,13 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     defaults: {
       skip: { plan: false, images: false, script: false, voice: false, video: false }, imageCount: 8, linesMin: 2, linesMax: 5, narrate: true, aspect: "16:9",
       narrator: { mode: "caption", caption: "落ち着いた、聞き取りやすい大人の語り手の声。", seed: "" },
-      video: { seconds: 5, megapixels: 0.4, turbo: true, sound: false },
+      video: { seconds: 4.25, megapixels: 0.4, turbo: true, sound: false, options: { music: "off", voice: "off", vocal: "on", sfx: "normal", motion: "normal", scene: "normal" } },
     },
     castVoice: { mode: "caption", caption: "", seed: "" },
-    limits: { imageCount: [1, 60], seconds: [2, 10], megapixels: [0.2, 1.2], lines: [1, 12], durationScale: [0.5, 2] },
+    limits: { imageCount: [1, 60], megapixels: [0.2, 1.2], lines: [1, 12], durationScale: [0.5, 2] },
     pages: {
       voiceLead: "「ノベルゲーム」で、セリフの音声を作る Irodori-TTS（Irodori Bridge）の接続先です。声は左の「③ 登場人物」で人物ごとに決めます。変更は自動で保存されます。",
-      videoLead: "「ノベルゲーム」で、「ループ動画にする」をオンにした画像を、ComfyUI の MiniMax H3（FL2VA）で最初と最後のフレームが同じループ動画にします。画像生成とは別の ComfyUI でもかまいません。変更は自動で保存されます。",
+      videoLead: "「ノベルゲーム」で、「ループ動画にする」をオンにした画像を、ComfyUI の MiniMax H3 Loop（Turbo）で、終わりが始まりにそのままつながるループ動画にします。画像は最初のフレームには固定せず、見た目の参考（<Picture 1>）として使います。画像生成とは別の ComfyUI でもかまいません。変更は自動で保存されます。",
       videoDoc: "このゲームの動画（プロジェクトに保存）",
     },
     sliders: { imageCount: [1, 30] },
@@ -1591,15 +1591,16 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
     video: {
       defaults: {
         url: "http://127.0.0.1:8188",
-        unet: "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
-        lora: "minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors",
+        unet: "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        lora: "minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
         clip: "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
         vae: "minimax_h3_video_vae_fp16.safetensors",
         audioVae: "minimax_h3_audio_vae_fp32.safetensors",
       },
-      oldDefaults: { vae: ["minimax_h3_video_vae_int8_convrot.safetensors"] },
+      oldDefaults: { vae: ["minimax_h3_video_vae_int8_convrot.safetensors"], unet: ["minimax_h3_fl2va_pruned_int8_convrot.safetensors"], lora: ["minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors"] },
+      stepsNoTurbo: 20,
       modelInputs: { unet: ["UNETLoader", "unet_name"], lora: ["LoraLoaderModelOnly", "lora_name"], clip: ["CLIPLoader", "clip_name"], vae: ["VAELoader", "vae_name"], audioVae: ["VAELoader", "vae_name"] },
-      workflowFile: "stillsheet_minimax_h3_fl2va_loop.json",
+      workflowFile: "stillsheet_minimax_h3_loop_turbo.json",
       workflowImage: "stillsheet_loop_frame.png",
       fileAccept: "video/*,.gif",
       fps: 24,
@@ -1608,31 +1609,26 @@ B. プロンプトの再現度。画像のプロンプトを、描くよう頼�
       uploadPrefix: "stillsheet_loop_",
       pollMs: 1500,
       timeoutMs: 3600000,
-      nodes: { save: "92", image: "114", video: "105:104", seconds: "105:111", seed: "105:15", turbo: "105:126", unet: "105:6", lora: "105:121", clip: "105:13", vae: "105:11", audioVae: "105:24" },
+      nodes: { image: "7", video: "9", seed: "10", unet: "1", lora: "2", loop: "3", clip: "4", vae: "5", audioVae: "6", steps: "12", size: "16" },
       workflow: {
-        "92": { "inputs": { "filename_prefix": "video/Stillsheet_loop", "format": "auto", "format.codec": "auto", "codec": "auto", "video": ["105:91", 0] }, "class_type": "SaveVideo", "_meta": { "title": "ビデオを保存" } },
-        "114": { "inputs": { "image": "" }, "class_type": "LoadImage", "_meta": { "title": "画像を読み込む" } },
-        "105:11": { "inputs": { "vae_name": "" }, "class_type": "VAELoader", "_meta": { "title": "VAEを読み込む" } },
-        "105:24": { "inputs": { "vae_name": "" }, "class_type": "VAELoader", "_meta": { "title": "VAEを読み込む" } },
-        "105:23": { "inputs": { "samples": ["105:14", 0], "vae": ["105:24", 0] }, "class_type": "VAEDecodeAudio", "_meta": { "title": "VAEデコード音声" } },
-        "105:10": { "inputs": { "samples": ["105:14", 0], "vae": ["105:11", 0] }, "class_type": "VAEDecode", "_meta": { "title": "VAEデコード" } },
-        "105:17": { "inputs": { "sampler_name": "res_multistep" }, "class_type": "KSamplerSelect", "_meta": { "title": "Kサンプラー選択" } },
-        "105:9": { "inputs": { "scheduler": "simple", "steps": ["105:123", 0], "denoise": 1, "model": ["105:122", 0] }, "class_type": "BasicScheduler", "_meta": { "title": "基本スケジューラー" } },
-        "105:14": { "inputs": { "noise": ["105:15", 0], "guider": ["105:16", 0], "sampler": ["105:17", 0], "sigmas": ["105:9", 0], "latent_image": ["105:104", 1] }, "class_type": "SamplerCustomAdvanced", "_meta": { "title": "カスタムサンプラー（高度）" } },
-        "105:16": { "inputs": { "model": ["105:122", 0], "conditioning": ["105:104", 0] }, "class_type": "BasicGuider", "_meta": { "title": "基本ガイダー" } },
-        "105:6": { "inputs": { "unet_name": "", "weight_dtype": "default" }, "class_type": "UNETLoader", "_meta": { "title": "拡散モデルを読み込む" } },
-        "105:13": { "inputs": { "clip_name": "", "type": "minimax", "device": "default" }, "class_type": "CLIPLoader", "_meta": { "title": "CLIPを読み込む" } },
-        "105:15": { "inputs": { "noise_seed": 0 }, "class_type": "RandomNoise", "_meta": { "title": "ランダムノイズ" } },
-        "105:91": { "inputs": { "fps": 24, "bit_depth": 8, "color_space": "sRGB", "codec": "none", "images": ["105:10", 0], "audio": ["105:23", 0] }, "class_type": "CreateVideo", "_meta": { "title": "動画を作成" } },
-        "105:104": { "inputs": { "prompt": "", "width": 512, "height": 512, "length": ["105:107", 1], "clip": ["105:13", 0], "vae": ["105:11", 0], "first_frame": ["114", 0], "last_frame": ["114", 0] }, "class_type": "MiniMaxH3ImageToVideo", "_meta": { "title": "MiniMax H3 画像から動画へ" } },
-        "105:107": { "inputs": { "expression": "max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17", "values.a": ["105:111", 0] }, "class_type": "ComfyMathExpression", "_meta": { "title": "数式" } },
-        "105:111": { "inputs": { "value": 5 }, "class_type": "PrimitiveFloat", "_meta": { "title": "Float (duration)" } },
-        "105:121": { "inputs": { "lora_name": "", "strength_model": 1, "model": ["105:6", 0] }, "class_type": "LoraLoaderModelOnly", "_meta": { "title": "LoRAローダーモデルのみ" } },
-        "105:122": { "inputs": { "switch": ["105:126", 0], "on_false": ["105:6", 0], "on_true": ["105:121", 0] }, "class_type": "ComfySwitchNode", "_meta": { "title": "If/Else Switch (Model)" } },
-        "105:123": { "inputs": { "switch": ["105:126", 0], "on_false": ["105:124", 0], "on_true": ["105:125", 0] }, "class_type": "ComfySwitchNode", "_meta": { "title": "If/Else Switch (Steps)" } },
-        "105:124": { "inputs": { "value": 20 }, "class_type": "PrimitiveInt", "_meta": { "title": "整数" } },
-        "105:125": { "inputs": { "value": 8 }, "class_type": "PrimitiveInt", "_meta": { "title": "整数" } },
-        "105:126": { "inputs": { "value": false }, "class_type": "PrimitiveBoolean", "_meta": { "title": "Boolean (Enable Lightning LoRA)" } },
+        "1": {"inputs": {"unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors", "weight_dtype": "default"}, "class_type": "UNETLoader", "_meta": {"title": "拡散モデルを読み込む"}},
+        "2": {"inputs": {"lora_name": "minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors", "strength_model": 1, "model": ["1", 0]}, "class_type": "LoraLoaderModelOnly", "_meta": {"title": "Turbo LoRA"}},
+        "3": {"inputs": {"pad_clips": 1, "views": 2, "model": ["2", 0]}, "class_type": "MiniMaxH3Loop", "_meta": {"title": "MiniMax H3 Loop"}},
+        "4": {"inputs": {"clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors", "type": "minimax", "device": "default"}, "class_type": "CLIPLoader", "_meta": {"title": "CLIPを読み込む"}},
+        "5": {"inputs": {"vae_name": "minimax_h3_video_vae_fp16.safetensors"}, "class_type": "VAELoader", "_meta": {"title": "Video VAE"}},
+        "6": {"inputs": {"vae_name": "minimax_h3_audio_vae_fp32.safetensors"}, "class_type": "VAELoader", "_meta": {"title": "Audio VAE"}},
+        "7": {"inputs": {"image": ""}, "class_type": "LoadImage", "_meta": {"title": "Reference image (<Picture 1>)"}},
+        "9": {"inputs": {"prompt": "", "width": ["16", 0], "height": ["16", 1], "length": 107, "ref_image_size": "match", "clip": ["4", 0], "vae": ["5", 0], "audio_vae": ["6", 0], "ref_images.ref_image_0": ["7", 0]}, "class_type": "MiniMaxH3ReferenceToVideo", "_meta": {"title": "MiniMax H3 リファレンスから動画へ"}},
+        "10": {"inputs": {"noise_seed": 42}, "class_type": "RandomNoise", "_meta": {"title": "ランダムノイズ"}},
+        "11": {"inputs": {"sampler_name": "res_multistep"}, "class_type": "KSamplerSelect", "_meta": {"title": "Kサンプラー選択"}},
+        "12": {"inputs": {"scheduler": "simple", "steps": 8, "denoise": 1, "model": ["3", 0]}, "class_type": "BasicScheduler", "_meta": {"title": "基本スケジューラー"}},
+        "13": {"inputs": {"model": ["3", 0], "conditioning": ["9", 0]}, "class_type": "BasicGuider", "_meta": {"title": "基本ガイダー"}},
+        "14": {"inputs": {"noise": ["10", 0], "guider": ["13", 0], "sampler": ["11", 0], "sigmas": ["12", 0], "latent_image": ["9", 1]}, "class_type": "SamplerCustomAdvanced", "_meta": {"title": "カスタムサンプラー（高度）"}},
+        "15": {"inputs": {"pad_clips": 1, "samples": ["14", 0], "vae": ["5", 0], "audio_vae": ["6", 0]}, "class_type": "MiniMaxH3LoopDecode", "_meta": {"title": "MiniMax H3 Loop Decode"}},
+        "16": {"inputs": {"aspect_ratio": "1:1 (Square)", "megapixels": 0.4, "multiple": 32}, "class_type": "ResolutionSelector", "_meta": {"title": "解像度セレクター"}},
+        "20": {"inputs": {"fps": ["23", 1], "bit_depth": 8, "color_space": "sRGB", "codec": "none", "images": ["23", 0], "audio": ["15", 1]}, "class_type": "CreateVideo", "_meta": {"title": "動画を作成"}},
+        "21": {"inputs": {"filename_prefix": "video/MiniMaxH3_Loop", "format": "auto", "format.codec": "auto", "codec": "auto", "video": ["20", 0]}, "class_type": "SaveVideo", "_meta": {"title": "ビデオを保存"}},
+        "23": {"inputs": {"method": "FILM", "multiplier": 2, "fps": 24, "images": ["15", 0]}, "class_type": "LoopInterpolate", "_meta": {"title": "Loop Interpolate"}},
       },
       videoExt: /\.(mp4|webm|mov|mkv|gif)$/i,
     },
@@ -1758,24 +1754,93 @@ Output ONLY one JSON object, with exactly one entry per picture, in order:
       natural: "英語の短い文章で（例: She stands under an umbrella in the rain, smiling softly, seen from the side.）。",
     },
 
-    videoPrompt: `You write prompts for the MiniMax H3 audio-video model in FL2VA mode, following the official H3 prompt-writing guide.
-The video lasts {seconds} seconds. Picture 1 (attached) is both the opening frame and the final frame, so the clip must return to exactly the opening pose and composition at the end and loop seamlessly. It is shown behind the dialogue of a visual novel, so it must stay calm and readable.
-FINAL PROMPT STRUCTURE (output nothing else):
-How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 1) aligns with the {seconds}-second mark of the target video.
-
-integrated_multimodal_description: [Shot 1] ...
-
-overall_soundscape: ...
-
-non_diegetic_music: N/A
-
-Rules for integrated_multimodal_description:
-- A single shot ([Shot 1] only), no cuts. Start with the overall style and the composition taken from the picture (for example "2D-animated, a medium shot frames ...").
-- Keep the characters' identity, outfit, colors, pose, place and the composition of the picture. The camera stays static or moves only very slightly.
-- Describe one gentle cyclic motion that starts from the picture's state and comes back to it by the end (breathing, a slow blink, hair and clothes stirring in the breeze, swaying, rain falling, light flickering, steam or petals drifting), as physics with weight and momentum, in the present tense. Picture 2 is identical to Picture 1.
-- No speech, no singing, no lip movement for dialogue, no one-way changes, no new people or objects.
-overall_soundscape: one or two English sentences of steady ambient sound that matches the motion (wind, rain, birds, room tone), with no voices.
-You receive the picture's title, what happens in it, the characters, the location and an optional motion hint from the user.`,
+    loopPrompt: {
+      header: "Generation settings (these take priority over everything above):",
+      directionRule: "User direction (highest priority for content, composition and situation; it may be written in Japanese, so interpret it and write the prompt in English): {text}",
+      soundscapeField: "overall_soundscape:",
+      musicField: "non_diegetic_music:",
+      instructionPattern: /^\s*(For the target video,|How the reference pictures align)[^\n]*\n*/,
+      groups: [{
+        key: "music",
+        label: "BGM",
+        default: "off",
+        choices: [["on", "あり", "Non-diegetic music: yes. In non_diegetic_music, describe instrumentation, tempo, rhythm and dynamic changes in 1–3 sentences, without abstract mood words."], ["off", "なし", "Non-diegetic music: none. non_diegetic_music must be exactly N/A."]],
+      }, {
+        key: "voice",
+        label: "セリフ・歌",
+        default: "off",
+        choices: [["on", "あり", "Speech: characters may speak, sing, hum or whisper. Give each speaker a stable ID such as (S1), describe the voice when the speaker first appears, and write short natural lines you invent yourself inside <d>[Japanese] ...</d> (use another language tag only if the picture clearly suggests it)."], ["off", "なし", "Speech: none. No character speaks, sings, hums or whispers, on or off screen; use no speaker IDs and no <d> tags."]],
+      }, {
+        key: "vocal",
+        label: "息・声の音",
+        default: "on",
+        choices: [["on", "あり", "Non-verbal vocal sounds: allowed. Breathing, panting, sighs, gasps, moans, laughter and screams from characters may be described where they fit the action, in integrated_multimodal_description and overall_soundscape."], ["off", "なし", "Non-verbal vocal sounds: none. No breathing or breath sounds, panting, sighs, gasps, moans, laughter, giggles, screams or any other sound from a character's mouth, nose or throat, in any field including overall_soundscape."]],
+      }, {
+        key: "sfx",
+        label: "動きの音",
+        default: "normal",
+        choices: [["strong", "強調", "Action sounds and ambience (sounds that do not come from a mouth): emphasized. Make the soundscape rich, concrete and tightly synchronized with every movement - describe in overall_soundscape, in time order, each physical sound with its source, timing, rhythm and loudness: fabric rustling and clothes brushing or sliding, hair swishing, footsteps and shifting weight, liquid sounds (splashing, dripping, pouring, sloshing, wet sounds), skin and bodies touching, rubbing, patting or slapping against each other, impacts and thuds, objects being moved, handled or set down, furniture creaking; plus a continuous ambient bed of the place (room tone, wind, rain, water, birds, traffic, crowd, distant city). Every visible motion has an audible sound; never leave the soundscape silent and never write N/A for it. TIMBRE (important): for every sound also say what material makes it and how it sounds, so the audio model does not render harsh or artificial tones - sounds of skin, flesh and bodies are soft, muffled, dull, warm and low-pitched (soft fleshy pats, muffled skin-on-skin contact, damp soft slaps), fabric is a soft rustle, liquids are wet and gentle; never describe them as sharp, crisp, cracking or clapping, and use no metallic, ringing, clanking, clinking, tinny or echoing sounds unless a metal or glass object is actually shown making them. Mouth sounds still follow the speech and breath/voice settings."], ["normal", "ふつう", "Action sounds and ambience: describe the physical sounds of the motion and the ambient sound of the place in overall_soundscape where they naturally fit."], ["off", "なし", "Action sounds and ambience: none. No footsteps, fabric, liquid, body, impact or object sounds and no ambient sound of the place."]],
+      }, {
+        key: "motion",
+        label: "動き",
+        default: "normal",
+        choices: [["subtle", "控えめ", "Motion level: subtle. Keep the actions small and calm, but fully alive and physically real (weight shifts, breathing, small gestures), with hair, clothing and the environment still moving continuously; never a frozen or puppet-like pose."], ["normal", "ふつう", "Motion level: natural. Clearly visible, lifelike movement with real weight and momentum: anticipation, follow-through, secondary motion of hair, clothing and soft body parts, and a background that keeps moving."], ["big", "大げさ", "Motion level: large and energetic. Athletic, expressive movement with strong momentum and big amplitude: deep anticipation, explosive action and large follow-through; hair, clothing and soft body parts swing widely and settle with inertia; the environment reacts strongly (gusts of wind, splashes, dust)."]],
+      }, {
+        key: "scene",
+        label: "場面転換",
+        default: "normal",
+        choices: [["static", "固定", "Camera: one static, locked-off shot for the whole clip. The framing, angle and focal length never change, and there are no cuts; write \"The camera holds a static shot\". Never describe any camera movement - no push in, pull out, pan, tilt, truck, pedestal, zoom, arc, tracking, crane, drift or shake, not even with small amplitude or at slow speed. This overrides the camera notes and the example in the prompt format. Only the subjects and the scene move."], ["subtle", "控えめ", "Scene change: minimal. Keep the place and the composition of the picture; the camera moves only gently (a slow push in or slight drift at most)."], ["normal", "ふつう", "Scene change: moderate. Change the camera angle or distance only when the action calls for it - then with one smooth move (push in, pull out, arc, tilt or pan), staying in the same place; if the action does not need it, keep the camera steady."], ["big", "大げさ", "Scene change: large - make it bold and cinematic like a film trailer, using striking camera angles and movements named with these film terms: {vocab} For example 2-3 shots with clear cuts to clearly different angles (each later shot starts with a strictly increasing cut time inside the duration, e.g. \"[Shot 2] At 00:02.500, the camera cuts to a low-angle shot ...\"), keeping the same characters and outfits. If the mode needs one continuous shot (FL2VA or L2VA), do one dramatic continuous camera move instead of cuts (for example a fast arc shot, a crane shot or a crash zoom). "]],
+      }],
+      modeLabel: "モード: FL2VA",
+      cameraVocab: "camera angles - eye level (straight-on), low angle (from below), high angle (from above), top shot / overhead shot (from directly above), bird's-eye view (from high above, wide), worm's-eye view (from the ground, extreme low angle), Dutch angle (tilted frame), over-the-shoulder shot (over the shoulder, from behind one person), POV / point of view (pov), 3/4 view (three-quarter view), profile shot (from side), reverse shot (from the opposite side); camera movements - pan, tilt, dolly in / push in, dolly out / pull out, truck (lateral tracking), tracking shot, zoom in / zoom out, crash zoom, crane shot (rising or lowering), drone shot, Steadicam, handheld, dolly zoom, arc shot (orbiting around the subject), pedestal (straight up or down), static / locked-off.",
+      staticCamera: {
+        sentence: "The camera holds a static shot.",
+        still: /\b(static|locked[- ]off|stationary|holds? (a |the |its )?(static|still|steady|fixed)|remains? (still|static|fixed|steady)|stays? (still|static|fixed|steady|locked))\b/i,
+        move: /\bcamera\b[^.;!?]*?\b(push|pull|pan|tilt|truck|doll|zoom|arc|orbit|track|crane|pedestal|shake|shaking|roll|drift|glide|slide|move|moving|follow|circl|rise|rising|lower|swing|sweep|creep|approach|travel|descend|ascend|cut|reframe|rotat|sway|bob|jib|boom|whip)\w*/i,
+        lead: /^((?:\[Shot \d+\]\s*)?(?:At [\d:.]+,\s*)?)(?:and\s+)?(?:then\s+)?(?:meanwhile,\s*)?(?:slowly,\s*)?the camera\b/i,
+        nounLead: /^((?:\[Shot \d+\]\s*)?(?:At [\d:.]+,\s*)?)(?:a|an|the)\s+(?:[a-z-]+\s+){0,3}(?:push[- ]in|pull[- ]out|pan|tilt|dolly(?:[- ](?:in|out))?|zoom(?:[- ](?:in|out))?|tracking shot|arc shot|crane shot|camera (?:move|movement))\b/i,
+        clause: /,?\s*(?:while|as|with)\s+the camera\b[^,.;!?]*/gi,
+        fields: ["integrated_multimodal_description:", "detailed_description:"],
+      },
+      audioRules: {
+        voice: {
+          en: "No speech: no one speaks, sings, hums or whispers, on or off screen, and the characters' lips never form words.",
+          ja: "セリフなし: 画面の内外で誰も話さず、歌わず、鼻歌もささやきもしない。登場人物の口が言葉を話す動きをすることもない。",
+        },
+        vocal: {
+          en: "No vocal sounds from the characters: no breathing sounds, panting, sighs, gasps, moans, laughter or screams.",
+          ja: "登場人物の声の音なし: 息づかい・あえぎ・ため息・息をのむ音・うめき声・笑い声・叫び声は聞こえない。",
+        },
+        sfx: {
+          en: "No action sounds or ambience: no footsteps, fabric, liquid, body, impact or object sounds, and no ambient sound of the place.",
+          ja: "動きの音なし: 足音・衣擦れ・液体の音・体の音・ぶつかる音・物音・その場の環境音は聞こえない。",
+        },
+      },
+      loop: {
+        fps: 24,
+        tailFrames: 5,
+        lengths: [107, 158, 209, 260, 311],
+        storyMode: "自然なループ動画。最後のフレームが最初のフレームにそのままつながるので、出来事の流れや一度きりの変化ではなく、くり返す動き（1回ごとに元の姿勢に戻る動作）が続いている状態を考える。動きの大きさは「動き」の指定に合わせる（控えめなら呼吸・揺れ・漂う動き、ふつうなら全身がはっきり動くリズミカルな動作、大げさならジャンプ・スクワット・腕立て伏せ・一回転・激しい揺れなどを全身で大きく）。くり返しの回数は、狙いたい構図・シチュエーションに書かれていればそれに従う。カメラは固定（自転車などで進むときは、一定の速さで並んで進む）。画像は最初のフレームではなく、見た目（人物・服・画風・場所）の参考。",
+        promptRule: "Mode: seamless LOOP. This overrides the mode, scene change, camera, timeline and facial-expression time-order rules and the prompt structure given above. The video is generated as a perfect loop: its last frame flows straight back into its first, so there is no first or last frame. <Picture 1> is a reference for the subject, outfit, style and place only; never describe it as the opening frame, and refer to the subject through it (for example \"The girl from <Picture 1> ...\"). Describe a state that keeps going, not a sequence of events: one clear main action that repeats in full cycles, each cycle ending exactly in the pose it started from so the clip plays again without a visible joint, plus ambient secondary motion that never runs out. The size of the action follows the loop motion level below; never make the action smaller to make it loop - the loop comes from repeating whole cycles, not from small motion. If the user direction gives the number of repetitions, use exactly that number of full cycles. Write the movement as physics with weight and momentum, with secondary motion of hair, clothing and soft body parts, in the present tense and without timestamps. If the story contains one-way changes or one-off events, turn them into a repeating cycle or a continuous state. Never use timelines, timestamps, shot labels, cuts, or words such as then, begins, starts to, finally, gradually, transforms into, by the end; no one-way changes (appearing, entering, leaving, lights switching, growth, weather or time-of-day changes) and no one-off events (a hit, a fall, a spoken line, an action that happens only once). Keep the light, weather and time of day fixed. Faces stay alive and follow the action and the effort, returning to the same expression at the end of each cycle. Camera: begin the description with exactly \"Locked-off static camera, no pan, no zoom.\" and never move the camera. The only exception is travel (riding a bicycle, running or walking forward): then begin with the camera traveling alongside or behind the subject at a perfectly constant speed, keeping them centered and level, through scenery that repeats exactly at even intervals (identical posts, trees or bumps), with no turns, no change in speed and nothing appearing; the body motion of the subject (pedaling, bouncing, jolting) is the repeating action. No speech, singing or lyrics, even if speech is allowed above. overall_soundscape is a steady ambient bed of sound plus the sounds of the repeating action in rhythm with it, without one-off sounds. Output exactly this structure and nothing else (no title, no first line, no field name before the description): the visual description as 4-8 present-tense sentences ending with \"Continuous, smooth, unbroken motion throughout.\", one blank line, overall_soundscape: ..., one blank line, non_diegetic_music: ...",
+        motion: {
+          subtle: "Loop motion level: subtle. A calm, small cyclic action at low amplitude: breathing, gentle swaying, slow bobbing, soft pulsing or a slow rotation, with hair and clothes stirring in a steady breeze; small but continuous and alive, never frozen.",
+          normal: "Loop motion level: natural. A clearly visible, full-body cyclic action at a natural amplitude with real weight and momentum (for example rhythmic bouncing, rocking, swinging the arms, bobbing up and down, a child bounced on a parent's knees), with anticipation, follow-through and secondary motion of hair, clothing and soft body parts on every cycle.",
+          big: "Loop motion level: large and energetic. A big, athletic cyclic action at full amplitude with strong momentum, shown completely on every cycle: jumps where the feet clearly leave the ground and the knees bend deeply on landing, deep full squats, full push-ups with the chest nearly touching the floor, a complete fast spin of the whole body, a child bounced high into the air on a parent's knees like on a trampoline, a rider's whole body jolting hard up and down over rough bumpy ground. Deep anticipation, explosive action, a clear peak, a hard impact and its absorption, then back to the starting pose; hair, clothing and soft body parts swing widely, fly up and bounce on impact, and the surroundings react strongly (dust, creaking, splashes). Never reduce the amplitude.",
+        },
+      },
+      story: {
+        system: "You are the director of a short live video made from a still image. Before anyone writes a video prompt, you plan what happens.\nStep 1 - analyze: look carefully at the picture(s) and read the image information (Stable Diffusion tags or the list of reference materials). Work out who or what is shown, their appearance and outfit, where it is, the time of day and weather, the pose, expression and mood, and what the subject is doing at this very moment. The Stable Diffusion prompt is the most reliable source for the action: find every tag that names an act, action, pose, position or interaction (who does what to whom or with what, with which body part or object) and treat them as facts about the scene. Ignore the negative prompt.\nStep 2 - imagine: decide what most naturally happens next in the {seconds}-second video, following the user's direction and the generation settings when they are given. When the tags name an act or action, the story continues and develops exactly that act - do not change it into something else or skip it. Make the action physical and alive: weight and momentum, anticipation and landing, hair and clothing swaying, the background moving (wind in trees, waves, light), and the sounds that would be heard. Also decide how each person's facial expression changes - gradually and believably, the way a real person's face reacts to what is happening (eyes, eyebrows, cheeks and mouth together), never frozen and never snapping from one expression to another. Obey the speech and vocal-sound settings strictly: when speech is なし, nobody talks, sings or whispers in the story; when the breath/voice sounds are なし, do not mention breathing, panting, moans, laughter or any other sound from a character's mouth or throat. When 動きの音 is 強調, name the concrete sound of each movement as it happens (衣擦れ, 足音, 液体の音, 肌が触れ合う・ぶつかる音, 物音) and the ambient sound of the place, with its texture - sounds of skin and bodies are soft, muffled and low (柔らかい・こもった・鈍い音), never metallic, ringing or sharp; when it is なし, mention no such sounds.\nWORDING (strict): be concrete and literal. Never use abstract, vague or euphemistic wording such as \"行為\", \"あれ\", \"そういうこと\", \"親密な時間\", \"触れ合う\", \"楽しむ\", \"ひととき\", \"何か\", \"交わる\" in place of the real thing. Name every act, action, pose, body part, piece of clothing and object by its specific, common Japanese name, taking the meaning directly from the tags (for example a tag like \"jumping\" becomes \"跳ぶ\", not \"体を動かす\"). If a tag for an act or object has no natural Japanese word, write the tag word itself in katakana or as-is (this never applies to names - see below).\nNAMES (strict): the image information may contain character names, person names, series titles or artist names. The video model cannot understand them, so never write any of them. Call each person by their visible appearance instead (for example \"赤い髪をツインテールにした少女\", \"茶色の短髪で緑の上着の少年\"), and use the same description for the same person every time. You may use the names only privately, to tell the people apart and, if you know the character, to fill in their usual appearance where it agrees with the picture. Say who does what, to whom or with what, with which body part, and how (speed, strength, rhythm, direction).\nVOICES: decide each audible person's voice from who they are in the picture and tags, so that it clearly fits them: age (幼い子ども・少女・少年・若い女性・成人女性・成人男性・年配の人), sex, body build (小柄・細身・大柄・太っている), and the kind of being (人間・エルフ・獣人・魔物・ロボットなど) and character. Describe it by its sound with concrete words: pitch (高い・中くらい・低い), weight and thickness (細い・軽い・太い・重い・丸みのある), texture (澄んだ・柔らかい・甘い・息の混じった・かすれた・こもった・よく響く), and for a fantasy or non-human being its special quality (たとえば 透き通って少し反響する・低くうなるような・人間離れした). A large or heavy person has a thicker, deeper, rounder voice; a small child or girl a high, light one. The voice stays the same for the whole video, and the story's sounds from that person use this voice.\nWrite the result in natural Japanese only, in exactly this form and nothing else (no English, no markdown, no headings other than these three):\n画像の状況: (1-2 sentences: who, where, wearing what, and the specific act or action happening right now, named concretely)\n声: (one entry per person who can be heard (speaking, singing, breathing or any vocal sound), separated by 「／」: the person's appearance description as used in the other lines, then their voice, e.g. 「赤い髪の少女: 高く澄んだ、軽く明るい少女の声」 - follow VOICES; write なし when both speech and the breath/voice sounds are なし)\n物語: (3-6 sentences describing, in time order, what happens during the {seconds} seconds - actions, how the facial expressions change, movement of hair, clothes and body, the background, and sounds)",
+        voiceRule: "VOICES (strict): the story's 声 line fixes each person's voice. Every time that person speaks, sings, breathes or makes any vocal sound, describe the sound in that voice: turn the description into concrete English (age and sex, pitch, weight, texture, and any special quality, e.g. \"a high, clear, light young girl's voice\" or \"a deep, thick, rounded voice of a heavyset man\") and use the same words every time, both where the sound happens in integrated_multimodal_description and in overall_soundscape. Never give a person a voice of another age, sex, build or kind. If a reference material gives a person's voice, follow the material for that person. The speech and vocal-sound settings still decide whether anyone is heard at all.",
+        voiceLine: /^\s*声\s*[:：]\s*(?!なし\s*$)\S/m,
+        userHeader: "Image information:",
+        optionsHeader: "Generation settings chosen by the user (Japanese):",
+        directionHeader: "User direction (highest priority):",
+        promptHeader: "Story to depict (planned in Japanese; follow its situation, events, order, actions, environment and sounds, and write them in the required English format. Name every act, action, pose and body part with the same concrete, specific English words as the Stable Diffusion tags - never soften or replace them with vague or euphemistic words):",
+      },
+      style: "You write prompts for the MiniMax H3 audio-video model, following the official H3 prompt-writing guide for the base keyframe modes (I2VA / FL2VA / L2VA).\nThe target video lasts {seconds} seconds. The input mode, the required first line, and the audio and motion settings are given under \"Generation settings\" at the end; follow them exactly.\nInfer the scene from the supplied picture(s) and the Stable Diffusion prompt (comma-separated tags). Never copy tags, weights or quality words into the output.\n\nFINAL PROMPT STRUCTURE (output nothing else):\n<the required first line from the generation settings>\n\nintegrated_multimodal_description: [Shot 1] ...\n\noverall_soundscape: ...\n\nnon_diegetic_music: ...\n\nintegrated_multimodal_description is the main body, written along the timeline:\n- Start [Shot 1] with the overall style and initial composition derived from the picture, e.g. \"[Shot 1] 2D-animated, a medium shot frames ...\". Common styles: Cinematic, live-action, 2D-animated, 3D CG, claymation, watercolor, vintage film.\n- Keep character identity, clothing, colors, key objects and spatial relationships consistent with the picture(s), while the body, hair, clothing and surroundings move freely.\n- Every detail must correspond to something visible or audible: subject appearance and position, scene and key props, actions and reactions, shot changes, speech, and synchronized diegetic sound.\n- Do not add a timestamp to [Shot 1]. Each later shot starts with a strictly increasing cut time inside the duration, e.g. \"[Shot 2] At 00:03.500, the camera cuts to ...\". Cut only to introduce new information; for a small change in distance or angle use camera motion instead.\n- Camera motion = motion type + optional amplitude + optional speed, written as a natural sentence inside the shot, e.g. \"The camera pushes in with small amplitude at slow speed toward the folded letter.\" Motion types: zoom in / zoom out, push in / pull out, pan left / pan right, truck left / truck right, tilt up / tilt down, pedestal up / pedestal down, arc shot, tracking shot, static shot, shake slightly / shake strongly, POV, roll clockwise / roll counterclockwise. Amplitude: with small amplitude / with large amplitude. Speed: at slow speed / at fast speed. Omit them for medium amplitude and normal speed.\n- Speakers (only when voices are allowed): a stable ID such as (S1); describe the voice when the speaker first appears; only the language tag and the spoken words go inside <d>, e.g. The girl with a bright, clear voice (S1) says: <d>[Japanese] おはよう！</d>\n- Text actually visible on screen goes in double quotation marks, verbatim.\n\nMOTION REALISM (apply at every motion setting; the motion setting changes only the amplitude and energy, never the realism):\n- Write movement as physics with weight and momentum, not as poses that change. Break every action into anticipation, action, follow-through and settling. For a jump: she bends her knees and swings her arms back, pushes off the ground, her arms swing up as her body rises, then she lands on the balls of her feet and her knees bend deeply to absorb the impact before she straightens up.\n- Repeated actions (jumping, running, dancing) show every cycle completely at a believable rhythm for the duration (about one jump per second), with slight natural variation between cycles.\n- Secondary motion follows the body with a slight delay: hair lifts on the way up, trails behind, bounces on landing and then settles; loose clothing, skirts, sleeves and ribbons flutter and swing; the arms swing for balance; soft parts of the body move with natural inertia and settle after each impact; the chest and shoulders rise and fall with breathing.\n- Show contact with the ground and the surroundings: feet pressing into sand or grass, small puffs of dust, splashes, shadows moving with the body.\n- The environment is never frozen. Give every shot continuous ambient motion that fits the place: leaves trembling and branches swaying at different rhythms in the wind, grass rippling, waves rolling in, breaking into foam and sliding back, reflections shimmering on water, sunlight flickering through leaves, clouds drifting, petals or dust floating in the air.\n- Name movements with concrete verbs, directions, speeds and timing (for example \"at 00:01.200 she lands\"), never with vague words such as \"moves naturally\" or \"dynamic\".\n- Even with subtle motion, keep the body and the scene alive: weight shifts, breathing, hair and clothes stirring, the background moving. Consistency means keeping the same identity, outfit and place, not a frozen pose.\n\noverall_soundscape: 1–4 English sentences in one paragraph covering ambient sound and physical action sounds that match the motion (footsteps and landing thumps, fabric swishes, wind in leaves, waves, objects), plus non-verbal vocal sounds such as breathing or laughter only when voices are allowed. Do not repeat dialogue or diegetic music. Use N/A only for complete silence.\nnon_diegetic_music: 1–3 English sentences on instrumentation, tempo, rhythm and dynamic changes, without abstract mood words; or N/A.\n\nExample (I2VA):\nFor the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\n\nintegrated_multimodal_description: [Shot 1] Live-action, cinematic, the young woman shown in <Picture 1> remains beside the rain-covered train window, preserving her appearance, clothing, seat position, and the carriage layout. The camera trucks right with small amplitude at slow speed as she lifts her gaze from the folded letter toward the passing city lights. She folds the letter along its existing crease.\n\noverall_soundscape: The train wheels produce a steady metallic rhythm beneath a low ventilation hum. Rain ticks against the window while paper rustles softly in her hands.\n\nnon_diegetic_music: Sustained cello notes at a slow tempo with widely spaced piano tones, gradually decreasing in volume.",
+      namingRule: "CHARACTER NAMES (strict): the image information may contain character names, person names, series or franchise titles, or artist names (tags such as \"firstname lastname\", \"name (series)\", \"series name\"). The video model has no idea who they are, so never write any of them. Refer to each person by their visible appearance instead - apparent sex and age, hair color and style, eye color, outfit, and other distinctive features - and keep using the same description for the same person every time (for example \"the girl with long red hair in twin tails\"). You may use the names only privately, to tell the people apart and, if you know the character, to fill in their usual appearance where it agrees with the picture. If the input story contains names, replace them with appearance descriptions.",
+      expressionRule: "FACIAL EXPRESSIONS (natural and human; apply at every motion setting): faces must stay alive and change the way a real person's face does, following the action, the effort and the emotion of the moment. Describe, in time order, how the expression of each visible person changes: the eyes (blinks at a natural rate, gaze shifting toward what they look at, eyelids narrowing or widening), the eyebrows, the cheeks and the corners of the mouth moving together as one expression. Expressions build up, peak and ease off gradually instead of snapping from one to another or freezing; add small micro-expressions between bigger changes (a brief squint, a quick glance, a slight smile fading). Never write a frozen, doll-like face, a smile held unchanged for the whole clip, or an exaggerated cartoon grimace unless the user asks for it. Start from the expression shown in the first frame. When speech is off, the lips may move only as part of an expression, never forming words.",
+    },
     labels: {
       secMode: "作り方",
       secStory: "② ストーリーと原稿",
@@ -1842,7 +1907,7 @@ You receive the picture's title, what happens in it, the characters, the locatio
       voiceDone: "{sec}秒",
       voiceError: "エラー",
       voiceSkip: "読まない",
-      videoLoop: "ループ動画にする（FL2VA・最初と最後をこの画像に）",
+      videoLoop: "ループ動画にする（MiniMax H3 Loop・この画像を見た目の参考に）",
       videoMotion: "動きの指示（任意）",
       videoMotionPlaceholder: "例: 髪とスカートが風にゆれる。雨が降り続ける。",
       videoPrompt: "動画のプロンプト（空欄なら文章AIが書きます）",
@@ -1865,7 +1930,7 @@ You receive the picture's title, what happens in it, the characters, the locatio
       gameTitle: "ゲームを試す（Prompt Reel と同じ再生画面）",
       gameClose: "閉じる（Esc）",
       workflowExport: "このワークフローを書き出す（ComfyUI 用 JSON）",
-      workflowNote: "ComfyUI の画面にドロップすると、このワークフローを開けます（上で選んだモデルのファイル名が入ります）。足りないカスタムノードは「Manager」→「Install Missing Custom Nodes」でまとめて入れられ、足りないモデルは ComfyUI で実行したときにエラーとして表示されます。",
+      workflowNote: "ComfyUI の画面にドロップすると、このワークフローを開けます（上で選んだモデルのファイル名が入ります）。ComfyUI 本体（MiniMax H3 対応版）に加えて、カスタムノード ComfyUI-MiniMaxH3-Loop と ComfyUI-Frame-Interpolation が必要です。足りないカスタムノードは「Manager」→「Install Missing Custom Nodes」でまとめて入れられ、足りないモデルは ComfyUI で実行したときにエラーとして表示されます。",
       videoModelsReload: "一覧を読み込む",
       videoModelsNote: "ComfyUI につながっていると、ComfyUI にあるファイルから選べます。一覧にないファイルは「（ComfyUI にありません）」と表示されます。",
       videoModelMissing: "{name}（ComfyUI にありません）",
@@ -1901,12 +1966,15 @@ You receive the picture's title, what happens in it, the characters, the locatio
       durationScale: "話す速さの倍率（長さ）",
       unloadBeforeVideo: "画像・動画を作る前に Irodori のモデルを VRAM から外す",
       videoUrl: "ComfyUI の URL",
-      videoSeconds: "動画の長さ（秒）",
+      videoSeconds: "動画の長さ（ループがきれいにつながる長さ）",
+      videoSecondsItem: "{sec} 秒（{frames} フレーム）",
+      videoOptions: "動画のプロンプトの指定（Stillmotion の「自然なループ」と同じ）",
+      videoOptionsNote: "文章AIが画像から物語を考え、それを MiniMax H3 のループ用プロンプトにします（Stillmotion で FL2VA・自然なループ「する」にしたときと同じ作り方です）。「動き」はループの動きの大きさになります。各画像の「動きの指示」は、最優先の指示として渡します。",
       videoMegapixels: "動画の大きさ（メガピクセル）",
       videoTurbo: "Turbo LoRA で速く作る（8ステップ）",
       videoSound: "動画の音（環境音）もゲームで鳴らす",
       videoModels: "モデルのファイル名",
-      videoUnet: "拡散モデル（FL2VA）",
+      videoUnet: "拡散モデル（Ref2VA）",
       videoLora: "Turbo LoRA",
       videoClip: "テキストエンコーダー",
       videoVae: "動画の VAE",
@@ -2343,7 +2411,7 @@ You receive the picture's title, what happens in it, the characters, the locatio
     { title: "最初に接続する", items: ["「設定」→「はじめに」の手順で、画像AIに web-app-cors を入れ、文章AIで CORS をオンにします。", "右上の「文章AI」「画像AI」が緑になればつながっています。あとからAIを起動したときは「更新」を押します。"] },
     { title: "お気に入りの1枚から始める", items: ["左の「① ベース画像」に画像をドロップすると、その画像の設定を右の「画像の共通設定」に流し込みます。", "品質タグを除いた残りのプロンプトでシーン1を作るので、あとはプロンプトを変えて生成するだけです。", "品質タグ・ネガティブがすでに入っているときは上書きしません（画像の内容にするときは「もう一度流し込む」）。", "「シードも引き継ぐ」をオンにして「もう一度流し込む」と、シードもベースと同じにします。"] },
     { title: "ざっくりした指示から紙芝居を作る", items: ["「③ 登場人物」「④ 場所」を登録し、「② ストーリー」に指示とシーンの数を書いて「✦ ストーリーを組み立てる」を押します。", "文章AIが、シーンごとのタイトル・ナレーション・登場人物・場所・人数タグ・プロンプトを作ります。", "左下の「▶ 生成を始める」で、まず全シーンの画像を指定枚数ずつ作り、作り終えたら文章AIが全シーンをまとめてチェックします。合格がないシーンだけ作り直して、またチェックします。"] },
-    { title: "ノベルゲームを作る（Prompt Reel に投稿）", items: ["左の「作り方」で「ノベルゲーム」を選びます。「② ストーリーと原稿」に指示を書くか原稿を貼り付け、画像の数を決めます。画像の大きさは、右の「画像の共通設定」→「縦横比」で、ループ動画にできる縦横比から選びます。", "「③ 登場人物」で人物ごとに声（キャプション・カセット・参照音声）を決めます。声の設定がない人物のセリフは、自動で進めるときには音声を作りません。あとから声を設定して「④ 音声を作る」の「ここから」を押せば、まだ音声のない行にまとめて付けられます。地の文を読む語り手の声もここで決めます。", "「⑤ 自動で作る」で作らない手順の「スキップ」をオンにし、左下の「▶ 生成を始める」を押します。① 構成 → ② 画像 → ③ セリフ → ④ 音声（Irodori-TTS）→ ⑤ ループ動画（ComfyUI の MiniMax H3 FL2VA）のうち、スキップしていない手順を順に進めます。「＋ 追加で再生成」で、できているものを残したまま画像・音声・動画の候補を作り足せます。", "ほかで作った画像・音声・動画は、それぞれの候補の一覧（動画は「ループ動画」の欄）にドロップすると候補に入ります。「▶ ゲームを試す」は Prompt Reel と同じ再生画面です。", "セリフの話し方（Irodori-TTS の絵文字）は、文章AIが画像のプロンプトの表情や状況から選びます。各行の「話し方」の欄で直せます。", "画像は各画像に1枚だけ出ます。「画像を選ぶ（N枚）」を押すと候補の一覧が開き、使う1枚を選んだり、「追加で生成」でさらに作ったりできます。", "音声は作り直すたびに候補として残ります。各行の「候補 N」で一覧を開き、聞き比べて使うものを選びます。「追加で作る」で、同じセリフをもう一度読ませます。", "別のAIにシナリオを書いてもらうときは、「別のAIへの依頼文をダウンロード」で依頼文を渡します。返ってきたシナリオの JSON（ファイルでも、返事を保存したテキストでも可）を画面にドロップすると、登場人物・場所・シーン・画像のプロンプト・セリフ・話し方をすべて流し込みます。あとは「▶ 生成を始める」で、足りない画像・音声・動画を作って完成させます。", "登場人物はあとから差し替えられます。「③ 登場人物」で見た目や声を直し、「この人物の画像を作り直す」「この人物の音声を作り直す」で作り直します。「キャストを読み込む（差し替え）」で人物をまとめて入れ替えることもできます。", "続きはあとからでも作れます。「保存 ▾」→「画像も含めて保存（ZIP）」は、画像の候補・音声の候補・ループ動画まで保存します。「ZIP（JSON＋素材）」で書き出したゲームの ZIP（または展開したフォルダ）を開いても、選んだ画像・音声・動画から続きを作れます。"] },
+    { title: "ノベルゲームを作る（Prompt Reel に投稿）", items: ["左の「作り方」で「ノベルゲーム」を選びます。「② ストーリーと原稿」に指示を書くか原稿を貼り付け、画像の数を決めます。画像の大きさは、右の「画像の共通設定」→「縦横比」で、ループ動画にできる縦横比から選びます。", "「③ 登場人物」で人物ごとに声（キャプション・カセット・参照音声）を決めます。声の設定がない人物のセリフは、自動で進めるときには音声を作りません。あとから声を設定して「④ 音声を作る」の「ここから」を押せば、まだ音声のない行にまとめて付けられます。地の文を読む語り手の声もここで決めます。", "「⑤ 自動で作る」で作らない手順の「スキップ」をオンにし、左下の「▶ 生成を始める」を押します。① 構成 → ② 画像 → ③ セリフ → ④ 音声（Irodori-TTS）→ ⑤ ループ動画（ComfyUI の MiniMax H3 Loop）のうち、スキップしていない手順を順に進めます。「＋ 追加で再生成」で、できているものを残したまま画像・音声・動画の候補を作り足せます。", "ほかで作った画像・音声・動画は、それぞれの候補の一覧（動画は「ループ動画」の欄）にドロップすると候補に入ります。「▶ ゲームを試す」は Prompt Reel と同じ再生画面です。", "セリフの話し方（Irodori-TTS の絵文字）は、文章AIが画像のプロンプトの表情や状況から選びます。各行の「話し方」の欄で直せます。", "画像は各画像に1枚だけ出ます。「画像を選ぶ（N枚）」を押すと候補の一覧が開き、使う1枚を選んだり、「追加で生成」でさらに作ったりできます。", "音声は作り直すたびに候補として残ります。各行の「候補 N」で一覧を開き、聞き比べて使うものを選びます。「追加で作る」で、同じセリフをもう一度読ませます。", "別のAIにシナリオを書いてもらうときは、「別のAIへの依頼文をダウンロード」で依頼文を渡します。返ってきたシナリオの JSON（ファイルでも、返事を保存したテキストでも可）を画面にドロップすると、登場人物・場所・シーン・画像のプロンプト・セリフ・話し方をすべて流し込みます。あとは「▶ 生成を始める」で、足りない画像・音声・動画を作って完成させます。", "登場人物はあとから差し替えられます。「③ 登場人物」で見た目や声を直し、「この人物の画像を作り直す」「この人物の音声を作り直す」で作り直します。「キャストを読み込む（差し替え）」で人物をまとめて入れ替えることもできます。", "続きはあとからでも作れます。「保存 ▾」→「画像も含めて保存（ZIP）」は、画像の候補・音声の候補・ループ動画まで保存します。「ZIP（JSON＋素材）」で書き出したゲームの ZIP（または展開したフォルダ）を開いても、選んだ画像・音声・動画から続きを作れます。"] },
     { title: "自分で組んだプロンプトを順番に作る", items: ["「＋ シーンを追加」でシーンを並べ、プロンプトを書きます。チェックを切れば、指定枚数を順番に作るだけの補助ツールになります。", "日本語のタイトル・ナレーションだけ書いて「✦ 文から書き直す」を押すと、そのシーンのプロンプトだけを文章AIが書きます。", "「このシーンだけの設定」で、枚数・大きさ（横長の構図だけ横向きなど）・シード（お気に入りのシードを固定）・追加のネガティブを変えられます。", "シーンの順番は、見出しの左端の点々（取っ手）をドラッグして入れ替えます。ドラッグ中にほかのシーンがその場で動きます。"] },
     { title: "点数と1枚の選び方", items: ["各画像に点数が出ます。シーンごとに、いちばん点数の高い合格画像が「セット」に入ります。", "候補はシーンの右側にサムネイルで並び、採用中の1枚がその下に大きく出ます。サムネイルをクリックするとその1枚が下に大きく出て、★（確定）が付きます。★ をもう一度押すと確定を外し、点数で自動に選びます。サムネイル右上の ✕ で、その画像を消せます。", "サムネイルをダブルクリックすると詳細が開き、問題点・プロンプト・シードを見られます。画像の左右の ◀ ▶（または ← → キー）で、同じシーンの前後の画像に切り替えられます。", "気に入ったシードは、画像を開いて「このシードをシーンに固定」で、そのシーンの次の生成から使えます。"] },
     { title: "同じシチュを別のキャラで作る", items: ["「保存 ▾」→「シチュを保存」でシーンを保存し、キャラごとに「キャストを保存」しておきます。", "「開く」でシチュとキャストを開くと、組み合わせを入れ替えて同じシチュを何組でも作れます。"] },
@@ -4024,10 +4092,11 @@ class Doc {
     out.narrator = this.voiceOf(n.narrator, base.narrator);
     const v = n.video && typeof n.video === "object" ? n.video : {};
     out.video = {
-      seconds: Number.isFinite(Number(v.seconds)) ? clamp(Number(v.seconds), lim.seconds) : base.video.seconds,
+      seconds: VideoClient.secondsOf(VideoClient.lengthFor(Number.isFinite(Number(v.seconds)) ? Number(v.seconds) : base.video.seconds)),
       megapixels: Number.isFinite(Number(v.megapixels)) ? clamp(Number(v.megapixels), lim.megapixels) : base.video.megapixels,
       turbo: v.turbo === undefined ? base.video.turbo : !!v.turbo,
       sound: !!v.sound,
+      options: Object.fromEntries(USER_SETTINGS.novel.loopPrompt.groups.map((g) => [g.key, g.choices.some(([c]) => c === v.options?.[g.key]) ? v.options[g.key] : base.video.options[g.key]])),
     };
     return out;
   }
@@ -4856,7 +4925,7 @@ class IrodoriClient {
   }
 }
 
-// ===== VIDEO CLIENT (COMFYUI MINIMAX H3 FL2VA LOOP) =====
+// ===== VIDEO CLIENT (COMFYUI MINIMAX H3 LOOP TURBO) =====
 class VideoClient {
   constructor(cfg) {
     this.cfg = { ...NV.video.defaults, ...(cfg || {}) };
@@ -4875,6 +4944,17 @@ class VideoClient {
     return { width: snap(Math.sqrt(area * ratio)), height: snap(Math.sqrt(area / ratio)) };
   }
 
+  static lengthFor(seconds) {
+    const C = NV.loopPrompt.loop;
+    const target = Number(seconds) * C.fps;
+    return C.lengths.reduce((best, len) => (Math.abs(len - C.tailFrames - target) < Math.abs(best - C.tailFrames - target) ? len : best));
+  }
+
+  static secondsOf(length) {
+    const C = NV.loopPrompt.loop;
+    return (length - C.tailFrames) / C.fps;
+  }
+
   static async frame(blob, size) {
     const bmp = await createImageBitmap(blob);
     const canvas = h("canvas", { width: size.width, height: size.height });
@@ -4890,12 +4970,16 @@ class VideoClient {
     const c = this.cfg;
     const wf = clone(NV.video.workflow);
     wf[N.image].inputs.image = imageName;
-    Object.assign(wf[N.video].inputs, { prompt, width: size.width, height: size.height });
-    wf[N.seconds].inputs.value = seconds;
+    Object.assign(wf[N.video].inputs, { prompt, width: size.width, height: size.height, length: VideoClient.lengthFor(seconds) });
+    delete wf[N.size];
     wf[N.seed].inputs.noise_seed = seed;
-    wf[N.turbo].inputs.value = !!turbo;
     wf[N.unet].inputs.unet_name = c.unet;
     wf[N.lora].inputs.lora_name = c.lora;
+    if (!turbo) {
+      wf[N.loop].inputs.model = [N.unet, 0];
+      wf[N.steps].inputs.steps = NV.video.stepsNoTurbo;
+      delete wf[N.lora];
+    }
     wf[N.clip].inputs.clip_name = c.clip;
     wf[N.vae].inputs.vae_name = c.vae;
     wf[N.audioVae].inputs.vae_name = c.audioVae;
@@ -5195,21 +5279,117 @@ class NovelWriter {
     }
   }
 
-  static async videoPrompt(llm, doc, scene, blob, signal) {
-    const loc = doc.locations.find((l) => l.id === scene.location);
-    const text = [
-      `Picture title: ${scene.title || "-"}`,
-      `What happens: ${scene.text || "-"}`,
-      `Characters: ${PromptBuilder.castOf(doc, scene).map((c) => `${c.name || "(unnamed)"} (${lookOf(c, scene)})`).join("; ") || "(none)"}`,
-      `Location: ${loc ? `${loc.name} / ${loc.prompt}` : "-"}`,
-      `Image prompt: ${scene.prompt || "-"}`,
-      scene.motion?.trim() ? `Motion hint from the user (follow it): ${scene.motion.trim()}` : "",
-    ].filter(Boolean).join("\n");
-    const url = await ImageChecker.imageUrl(blob);
-    const reply = await llm.chat(fmt(NV.videoPrompt, { seconds: doc.novel.video.seconds }), text, [url], signal);
-    const out = String(reply.text || "").replace(/<think>[\s\S]*?<\/think>/g, "").replace(/^```[a-z]*\s*|```\s*$/gi, "").trim();
-    if (!out) throw new UserError(M.llmEmptyReply);
+  // LOOP VIDEO PROMPT
+  static loopSeconds(doc) { return VideoClient.secondsOf(VideoClient.lengthFor(doc.novel.video.seconds)); }
+
+  static loopContext(doc, scene, img, size) {
+    return `Stable Diffusion prompt: ${ImageChecker.promptOf(doc, scene, img) || "(none)"}\n` +
+      `Negative prompt (for reference only): ${img.negative || "(none)"}\n` +
+      `Model: ${img.settings?.model || doc.common.model || "unknown"}\nImage size: ${size.width}x${size.height}`;
+  }
+
+  static loopOptionsText(doc) {
+    const P = NV.loopPrompt;
+    const chosen = doc.novel.video.options;
+    const lines = P.groups.map((g) => `${g.label}: ${(g.choices.find(([v]) => v === chosen[g.key]) || [])[1] || chosen[g.key]}`);
+    lines.unshift(P.modeLabel);
+    lines.push(`モードの意味: ${P.loop.storyMode}`);
+    lines.push(`長さ: ${this.loopSeconds(doc).toFixed(2)}秒`);
+    return lines.join("\n");
+  }
+
+  static loopSettingsText(doc, direction) {
+    const P = NV.loopPrompt;
+    const chosen = doc.novel.video.options;
+    const lines = P.groups.filter((g) => g.key !== "motion").map((g) => g.choices.find(([v]) => v === chosen[g.key])[2].replace("{vocab}", P.cameraVocab));
+    lines.unshift(P.loop.promptRule, P.loop.motion[chosen.motion] || P.loop.motion.normal);
+    if (direction) lines.push(P.directionRule.replace("{text}", direction));
+    return `${P.header}\n${lines.map((l) => `- ${l}`).join("\n")}`;
+  }
+
+  static staticCamera(text) {
+    const cfg = NV.loopPrompt.staticCamera;
+    const fixSentence = (sentence) => {
+      if (!cfg.move.test(sentence) && !cfg.nounLead.test(sentence)) return sentence;
+      const lead = sentence.match(cfg.lead) || sentence.match(cfg.nounLead);
+      if (lead) return `${lead[1]}${/,\s*$/.test(lead[1]) ? cfg.sentence.replace(/^The/, "the") : cfg.sentence}`;
+      return sentence.replace(cfg.clause, "");
+    };
+    const lines = text.split("\n").map((line) => {
+      if (!/\bcamera\b|push[- ]in|pull[- ]out|dolly|zoom|tracking shot|arc shot|crane shot/i.test(line)) return line;
+      const said = new Set();
+      let shot = "";
+      return line.split(/(?<=[.!?])\s+/).map(fixSentence).filter((p) => {
+        const body = p.replace(/^[a-z_]+:\s*/, "");
+        shot = body.match(/^\[Shot \d+\]/)?.[0] || shot;
+        const bare = body.replace(/^\[Shot \d+\]\s*/, "").replace(/^At [\d:.]+,\s*/, "");
+        if (bare.toLowerCase() !== cfg.sentence.toLowerCase()) return true;
+        if (said.has(shot)) return false;
+        said.add(shot);
+        return true;
+      }).join(" ");
+    });
+    let out = lines.join("\n");
+    if (!cfg.still.test(out)) {
+      const field = cfg.fields.find((f) => out.includes(f));
+      if (field) {
+        const at = out.indexOf(field) + field.length;
+        const lead = out.slice(at).match(/^[ \t]*\r?\n?/)[0].length;
+        const end = out.indexOf("\n", at + lead);
+        const stop = end < 0 ? out.length : end;
+        out = `${out.slice(0, stop).trimEnd()} ${cfg.sentence}${out.slice(stop)}`;
+      }
+    }
     return out;
+  }
+
+  static loopFinish(doc, text) {
+    const P = NV.loopPrompt;
+    const chosen = doc.novel.video.options;
+    let out = text.replace(P.instructionPattern, "").trimStart();
+    const rules = ["voice", "vocal", "sfx"].filter((k) => chosen[k] === "off").map((k) => P.audioRules[k].en);
+    if (rules.length) {
+      const at = out.indexOf(P.soundscapeField);
+      if (at >= 0) {
+        const start = at + P.soundscapeField.length;
+        const lead = out.slice(start).match(/^[ \t]*(\r?\n)?/);
+        const body = out.slice(start + lead[0].length);
+        if (!/^N\/A\b/.test(body)) out = `${out.slice(0, start)}${lead[1] ? "\n" : " "}${rules.join(" ")}${body ? ` ${body}` : ""}`;
+      } else {
+        out = `${out.trimEnd()}\n\n${P.soundscapeField} ${rules.join(" ")}`;
+      }
+    }
+    if (chosen.scene === "static") out = this.staticCamera(out);
+    if (chosen.music === "off") out = out.replace(new RegExp(`(^|\\n)(${P.musicField})([ \\t]*\\n?)[^\\n]*`), (m, lead, field, sep) => `${lead}${field}${sep.includes("\n") ? "\n" : " "}N/A`);
+    return out;
+  }
+
+  static clean(reply) {
+    let t = String(reply?.text || "").replace(/<think>[\s\S]*?<\/think>/g, "");
+    if (t.includes("</think>")) t = t.split("</think>").slice(1).join("</think>");
+    t = t.trim().replace(/^```\w*\n?|\n?```$/g, "").trim();
+    if (t.length >= 2 && t[0] === t[t.length - 1] && `"'`.includes(t[0])) t = t.slice(1, -1).trim();
+    return t;
+  }
+
+  static async videoPrompt(llm, doc, scene, img, signal) {
+    const P = NV.loopPrompt;
+    const seconds = String(this.loopSeconds(doc));
+    const nv = doc.novel.video;
+    const size = VideoClient.size(img.width || doc.common.width, img.height || doc.common.height, nv.megapixels);
+    const contextText = this.loopContext(doc, scene, img, size);
+    const direction = (scene.motion || "").trim();
+    const images = [await ImageChecker.imageUrl(img.blob)];
+    let storyUser = `${P.story.userHeader}\n${contextText}\n\n${P.story.optionsHeader}\n${this.loopOptionsText(doc)}`;
+    if (direction) storyUser += `\n\n${P.story.directionHeader} ${direction}`;
+    const story = this.clean(await llm.chat(P.story.system.replaceAll("{seconds}", seconds), storyUser, images, signal));
+    if (!story) throw new UserError(M.llmEmptyReply);
+    const system = `${P.style.replaceAll("{seconds}", seconds)}\n\n${this.loopSettingsText(doc, direction)}\n\n${P.namingRule}\n\n${P.expressionRule}`;
+    let user = `${contextText}\n\n${P.story.promptHeader}\n${story}`;
+    if (P.story.voiceLine.test(story)) user += `\n\n${P.story.voiceRule}`;
+    const out = this.clean(await llm.chat(system, user, images, signal));
+    if (!out) throw new UserError(M.llmEmptyReply);
+    return this.loopFinish(doc, out);
   }
 }
 
@@ -5700,7 +5880,7 @@ class NovelRunner {
         const s = needPrompt[i];
         app.phase("llm", fmt(NM.videoPrompting, { i: i + 1, n: needPrompt.length }));
         app.status(fmt(NM.videoPrompting, { i: i + 1, n: needPrompt.length }));
-        s.videoPrompt = await NovelWriter.videoPrompt(llm, doc, s, app.pickOf(s.id).blob, signal);
+        s.videoPrompt = await NovelWriter.videoPrompt(llm, doc, s, app.pickOf(s.id), signal);
         app.docChanged(false);
         app.board.paintVideo(s.id);
       }
@@ -7841,10 +8021,19 @@ class SettingsDialog {
         msg),
       this.card(NV.pages.videoDoc,
         h("div", { class: "grid2" },
-          Form.field(NL.videoSeconds, Form.number(nv, "seconds", changed, lim.seconds, { step: 1 })),
+          Form.field(NL.videoSeconds, (() => {
+            const sel = h("select", { "data-key": "seconds" });
+            const C = NV.loopPrompt.loop;
+            fillSelect(sel, C.lengths.map((len) => [String(VideoClient.secondsOf(len)), fmt(NL.videoSecondsItem, { sec: VideoClient.secondsOf(len).toFixed(2), frames: len })]), String(nv.seconds));
+            sel.addEventListener("change", () => { nv.seconds = Number(sel.value); changed(); });
+            return sel;
+          })()),
           Form.field(NL.videoMegapixels, Form.number(nv, "megapixels", changed, lim.megapixels, { step: 0.1 }))),
         Form.check(nv, "turbo", NL.videoTurbo, changed),
         Form.check(nv, "sound", NL.videoSound, changed)),
+      this.card(NL.videoOptions,
+        h("p", { class: "note", text: NL.videoOptionsNote }),
+        ...NV.loopPrompt.groups.map((g) => Form.prop(g.label, Form.seg(g.choices.map(([v, label]) => [v, label]), nv.options[g.key], (val) => { nv.options[g.key] = val; changed(); })))),
       this.card(NL.videoModels, ...Object.keys(NV.video.modelInputs).map((k) => Form.field(NL[`video${k[0].toUpperCase()}${k.slice(1)}`], sels[k])),
         h("div", { class: "row" }, h("button", { class: "mini", text: NL.videoModelsReload, onclick: () => loadModels() })),
         h("p", { class: "note", text: NL.videoModelsNote }),
