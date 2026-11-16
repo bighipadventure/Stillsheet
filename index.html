@@ -671,8 +671,12 @@ body.drag-active, body.drag-active * { cursor: grabbing !important; -webkit-user
 .nv-group.collapsed .nv-group-body, .nv-group.collapsed .nv-add-image { display: none; }
 .nv-add-image { display: block; width: calc(100% - 20px); margin: 0 10px 10px; border-style: dashed; background: transparent; }
 .nv-lines { display: flex; flex-direction: column; gap: 4px; }
-.nv-line { display: grid; grid-template-columns: 110px 64px minmax(0, 1fr) auto auto auto; gap: 2px 4px; align-items: center; padding-bottom: 4px; border-bottom: 1px dashed var(--line); }
-.nv-line .nv-voice { grid-row: 2; grid-column: 2 / -1; }
+.nv-line { display: grid; grid-template-columns: 16px 110px 64px minmax(0, 1fr) auto auto auto; gap: 2px 4px; align-items: center; padding-bottom: 4px; border-bottom: 1px dashed var(--line); }
+.nv-line .nv-voice { grid-row: 2; grid-column: 3 / -1; }
+.nv-line-grip { align-self: stretch; cursor: grab; touch-action: none; background: radial-gradient(circle, var(--muted) 1px, transparent 1.4px) 0 0 / 6px 6px; opacity: .6; border-radius: 3px; min-height: 32px; }
+.nv-line-grip:hover { opacity: 1; }
+.nv-line.nv-line-lifted { background: var(--surface-2); outline: 2px dashed var(--accent); outline-offset: 2px; border-radius: 6px; opacity: .85; }
+body.drag-active .nv-line-grip { cursor: grabbing; }
 .nv-line .nv-emo { min-width: 0; height: 32px; padding: 0 4px; font-size: 16px; justify-content: center; border: 1px solid var(--line-strong); background: var(--field, var(--bg)); }
 .nv-line .nv-emo.empty { font-size: 11px; color: var(--muted); }
 .nv-line .nv-text { min-height: 32px; }
@@ -770,7 +774,7 @@ body.mode-novel .scene.no-image .scene-fields > .scene-run { display: none; }
 .narrator-item .item-head b { font-size: 13px; }
 body.mode-novel #run-target { display: none; }
 body.mode-novel .run-row { grid-template-columns: 1fr; }
-@media (max-width: 700px) { .nv-line { grid-template-columns: 90px 56px minmax(0, 1fr); } .nv-line .nv-voice { grid-row: auto; grid-column: 1 / -1; } }
+@media (max-width: 700px) { .nv-line { grid-template-columns: 16px 90px 56px minmax(0, 1fr); } .nv-line .nv-voice { grid-row: auto; grid-column: 2 / -1; } }
 
 /* ===== DESIGN RULES 2 (RED FILL = WHITE TEXT / NO GRADIENT) ===== */
 .phase[data-phase="error"], .thumb .badge.ng { background: var(--danger-fill); color: var(--on-danger); }
@@ -1471,6 +1475,8 @@ install()
   anatomyScoreCap: 20,
   textGrowMaxPx: 240,
   dblClickWaitMs: 260,
+  dragEdgePx: 60,
+  dragThresholdPx: 5,
   resizeGripPx: 18,
   limits: { sceneCount: [1, 40], perScene: [1, 500], threshold: [0, 100], matchThreshold: [0, 100], steps: [1, 150], cfg: [1, 30], clipSkip: [1, 12], side: [256, 4096], temperature: [0, 2], maxTokens: [256, 131072] },
   sliders: { perScene: [1, 100], threshold: [0, 100], matchThreshold: [0, 100], steps: [1, 80], cfg: [1, 15], side: [512, 2048], temperature: [0, 1.5] },
@@ -1893,8 +1899,9 @@ Output ONLY one JSON object, with exactly one entry per picture, in order:
       lineAdd: "＋ セリフを追加",
       lineSpeaker: "話者",
       lineText: "セリフ・地の文",
-      lineUp: "上へ",
-      lineDown: "下へ",
+      lineUp: "上へ（先頭の行は前の画像の最後へ）",
+      lineDown: "下へ（最後の行は次の画像の先頭へ）",
+      lineGrip: "ドラッグで移動（ほかの画像・シーンへも移せます）",
       lineRemove: "この行を削除",
       narratorName: "地の文",
       voicePlay: "▶",
@@ -6865,11 +6872,13 @@ class SceneBoard {
     this.cards = new Map();
     this.sort = new DragSort({ container: this.root, item: ".scene", handle: ".drag-grip", id: (el) => el.dataset.scene, onEnd: (ids) => app.reorderScenes(ids) });
     this.groupSort = new DragSort({ container: this.root, item: ".nv-group", handle: ".nv-group-grip", id: (el) => el.dataset.group, onEnd: (ids) => app.reorderGroups(ids) });
+    this.lineDrag = (e) => this.startLineDrag(e);
+    this.root.addEventListener("pointerdown", this.lineDrag);
     this.groupSorts = [];
     this.collapsed = new Set();
   }
 
-  destroy() { this.sort.destroy(); this.groupSort.destroy(); this.groupSorts.forEach((x) => x.destroy()); this.cards.clear(); this.root.replaceChildren(); }
+  destroy() { this.sort.destroy(); this.groupSort.destroy(); this.groupSorts.forEach((x) => x.destroy()); this.root.removeEventListener("pointerdown", this.lineDrag); this.cards.clear(); this.root.replaceChildren(); }
 
   render() {
     const doc = this.app.doc;
@@ -6939,22 +6948,108 @@ class SceneBoard {
     const speakersFor = () => [[NV.narrator, NL.narratorName], ...doc.cast.map((c, i) => [c, i])
       .map(([c, i]) => [c.id, `${letter(i)}. ${c.name || L.castUnnamed}`])];
     const emoTitle = fmt(NL.emoTitle, { list: NovelWriter.emojiList() });
+    const at = doc.scenes.indexOf(scene);
     const move = (i, d) => {
       const j = i + d;
-      if (j < 0 || j >= scene.lines.length) return;
-      [scene.lines[i], scene.lines[j]] = [scene.lines[j], scene.lines[i]];
-      app.docChanged(false);
-      this.updateLines(sceneId);
+      if (j >= 0 && j < scene.lines.length) {
+        [scene.lines[i], scene.lines[j]] = [scene.lines[j], scene.lines[i]];
+        app.docChanged(false);
+        this.updateLines(sceneId);
+        return;
+      }
+      const other = doc.scenes[at + d];
+      if (other) this.moveLine(scene.lines[i].id, other.id, d < 0 ? other.lines.length : 0);
     };
     card.lines.replaceChildren(...scene.lines.map((l, i) => h("div", { class: "nv-line", "data-line": l.id },
+      h("span", { class: "nv-line-grip", title: NL.lineGrip, "aria-hidden": "true" }),
       Form.select(l, "who", speakersFor(l), () => { app.docChanged(false); this.updateVoice(l.id); app.left.paintSteps(); }, { class: "nv-who", listed: false, "aria-label": NL.lineSpeaker }),
       h("button", { type: "button", class: `nv-emo${l.emo ? "" : " empty"}`, text: l.emo || NL.emoPick, title: emoTitle, "aria-label": NL.emo, onclick: (e) => app.emoMenu.open(e.currentTarget, l, () => { app.docChanged(false); this.updateVoice(l.id); app.left.paintSteps(); }) }),
       Form.text(l, "text", () => { app.docChanged(false); this.updateVoice(l.id); app.left.paintSteps(); }, { class: "nv-text", placeholder: NL.lineText, rows: 1 }),
       h("span", { class: "nv-voice" }),
-      h("button", { class: "mini quiet", text: "↑", title: NL.lineUp, disabled: i === 0, onclick: () => move(i, -1) }),
-      h("button", { class: "mini quiet", text: "↓", title: NL.lineDown, disabled: i === scene.lines.length - 1, onclick: () => move(i, 1) }),
+      h("button", { class: "mini quiet", text: "↑", title: NL.lineUp, disabled: i === 0 && at === 0, onclick: () => move(i, -1) }),
+      h("button", { class: "mini quiet", text: "↓", title: NL.lineDown, disabled: i === scene.lines.length - 1 && at === doc.scenes.length - 1, onclick: () => move(i, 1) }),
       h("button", { class: "mini quiet danger", text: "✕", title: NL.lineRemove, onclick: () => { scene.lines.splice(i, 1); app.docChanged(false); this.updateLines(sceneId); app.left.paintSteps(); } }))));
     for (const l of scene.lines) this.updateVoice(l.id);
+  }
+
+  moveLine(lineId, toSceneId, index) {
+    const doc = this.app.doc;
+    const from = doc.scenes.find((s) => s.lines.some((l) => l.id === lineId));
+    const to = doc.scenes.find((s) => s.id === toSceneId);
+    if (!from || !to) return;
+    const i = from.lines.findIndex((l) => l.id === lineId);
+    const [line] = from.lines.splice(i, 1);
+    to.lines.splice(clamp(index, [0, to.lines.length]), 0, line);
+    this.app.docChanged(false);
+    this.updateLines(from.id);
+    if (to !== from) this.updateLines(to.id);
+    this.paintGroupStats();
+    this.app.left.paintSteps();
+    this.cards.get(to.id)?.lines?.querySelector(`.nv-line[data-line="${lineId}"] .nv-text`)?.focus({ preventScroll: true });
+  }
+
+  paintGroupStats() {
+    for (const g of Doc.groups(this.app.doc)) {
+      const el = this.root.querySelector(`.nv-group[data-group="${g.head.id}"] .nv-group-stat`);
+      if (el) el.textContent = fmt(NL.groupStat, { n: g.scenes.length, lines: g.scenes.reduce((n, s) => n + s.lines.filter((l) => l.text.trim()).length, 0) });
+    }
+  }
+
+  startLineDrag(e) {
+    const grip = e.target.closest(".nv-line-grip");
+    if (!grip || e.button !== 0) return;
+    const row = grip.closest(".nv-line");
+    const lineId = row?.dataset.line;
+    if (!lineId) return;
+    e.preventDefault();
+    const doc = row.ownerDocument;
+    const win = doc.defaultView;
+    const s = { x: e.clientX, y: e.clientY, on: false, raf: 0 };
+    const place = () => {
+      const hit = doc.elementFromPoint(s.x, s.y)?.closest(".scene");
+      const list = hit && !hit.closest(".nv-group.collapsed") ? hit.querySelector(".nv-lines") : row.parentElement;
+      if (!list) return;
+      const rows = [...list.children].filter((el) => el.matches(".nv-line") && el !== row);
+      const at = rows.filter((el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2 < s.y; }).length;
+      const ref = rows[at] || null;
+      if (row.parentElement !== list || row.nextElementSibling !== ref) list.insertBefore(row, ref);
+    };
+    const scroll = () => {
+      s.raf = 0;
+      const edge = USER_SETTINGS.dragEdgePx, vh = win.innerHeight;
+      const dy = s.y < edge ? -(edge - s.y) / 3 : s.y > vh - edge ? (s.y - (vh - edge)) / 3 : 0;
+      if (!dy) return;
+      win.scrollBy(0, dy);
+      place();
+      s.raf = win.requestAnimationFrame(scroll);
+    };
+    const move = (ev) => {
+      s.x = ev.clientX;
+      s.y = ev.clientY;
+      if (!s.on) {
+        if (Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < USER_SETTINGS.dragThresholdPx) return;
+        s.on = true;
+        row.classList.add("nv-line-lifted");
+        doc.body.classList.add("drag-active");
+      }
+      place();
+      if (!s.raf) s.raf = win.requestAnimationFrame(scroll);
+    };
+    const end = () => {
+      doc.removeEventListener("pointermove", move);
+      doc.removeEventListener("pointerup", end);
+      doc.removeEventListener("pointercancel", end);
+      if (s.raf) win.cancelAnimationFrame(s.raf);
+      doc.body.classList.remove("drag-active");
+      row.classList.remove("nv-line-lifted");
+      if (!s.on) return;
+      const target = row.closest(".scene")?.dataset.scene;
+      const index = [...row.parentElement.children].filter((el) => el.matches(".nv-line")).indexOf(row);
+      this.moveLine(lineId, target, index);
+    };
+    doc.addEventListener("pointermove", move);
+    doc.addEventListener("pointerup", end);
+    doc.addEventListener("pointercancel", end);
   }
 
   updateVoice(lineId) {
